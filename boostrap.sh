@@ -90,159 +90,40 @@ cmake_sphinx_latexpdf=""
 cmake_sphinx_build=""
 cmake_sphinx_flags=""
 
-# Determine whether this is a Cygwin environment.
-if echo "${cmake_system}" | grep CYGWIN >/dev/null 2>&1; then
-  cmake_system_cygwin=true
-  cmake_doc_dir_keyword="CYGWIN"
-  cmake_man_dir_keyword="CYGWIN"
-else
-  cmake_system_cygwin=false
-fi
-
-# Determine whether this is a MSYS environment.
-if echo "${cmake_system}" | grep MSYS >/dev/null 2>&1; then
-  cmake_system_msys=true
-  cmake_doc_dir_keyword="MSYS"
-  cmake_man_dir_keyword="MSYS"
-else
-  cmake_system_msys=false
-fi
-
 # Determine whether this is a MinGW environment.
-if echo "${cmake_system}" | grep 'MINGW' >/dev/null 2>&1; then
-  cmake_system_mingw=true
-else
-  cmake_system_mingw=false
-fi
-
-# Determine whether this is OS X
-if echo "${cmake_system}" | grep Darwin >/dev/null 2>&1; then
-  cmake_system_darwin=true
-else
-  cmake_system_darwin=false
-fi
-
-# Determine whether this is BeOS
-if echo "${cmake_system}" | grep BeOS >/dev/null 2>&1; then
-  cmake_system_beos=true
-  cmake_doc_dir_keyword="HAIKU"
-  cmake_man_dir_keyword="HAIKU"
-else
-  cmake_system_beos=false
-fi
-
-# Determine whether this is Haiku
-if echo "${cmake_system}" | grep Haiku >/dev/null 2>&1; then
-  cmake_system_haiku=true
-  cmake_doc_dir_keyword="HAIKU"
-  cmake_man_dir_keyword="HAIKU"
-else
-  cmake_system_haiku=false
-fi
-
-# Determine whether this is OpenVMS
-if echo "${cmake_system}" | grep OpenVMS >/dev/null 2>&1; then
-  cmake_system_openvms=true
-else
-  cmake_system_openvms=false
-fi
-
-# Determine whether this is HP-UX
-if echo "${cmake_system}" | grep HP-UX >/dev/null 2>&1; then
-  die 'CMake no longer compiles on HP-UX.  See
-
-  https://gitlab.kitware.com/cmake/cmake/-/issues/17137
-
-Use CMake 3.9 or lower instead.'
-  cmake_system_hpux=true
-else
-  cmake_system_hpux=false
-fi
-
-# Determine whether this is AIX
-if echo "${cmake_system}" | grep AIX >/dev/null 2>&1; then
-  cmake_system_aix=true
-else
-  cmake_system_aix=false
-fi
-
-# Determine whether this is Linux
-if echo "${cmake_system}" | grep Linux >/dev/null 2>&1; then
-  cmake_system_linux=true
-else
-  cmake_system_linux=false
-fi
-
-# Determine whether this is a PA-RISC machine
-# This only works for Linux or HP-UX, not other PA-RISC OSs (BSD maybe?). Also
-# may falsely detect parisc on HP-UX m68k
-cmake_machine_parisc=false
-if ${cmake_system_linux}; then
-  if uname -m | grep parisc >/dev/null 2>&1; then
-    cmake_machine_parisc=true
-  fi
-elif ${cmake_system_hpux}; then
-  if uname -m | grep ia64 >/dev/null 2>&1; then : ; else
-    cmake_machine_parisc=true
-  fi
+if ! echo "${cmake_system}" | grep 'MINGW' >/dev/null 2>&1; then
+    echo "MingGW is required to bootstrap"
+    exit 1
 fi
 
 # Choose the generator to use for bootstrapping.
-if ${cmake_system_mingw}; then
-  # Bootstrapping from an MSYS prompt.
-  cmake_bootstrap_generator="MSYS Makefiles"
-else
-  # Bootstrapping from a standard UNIX prompt.
-  cmake_bootstrap_generator="Unix Makefiles"
-fi
+# Bootstrapping from an MSYS prompt.
+cmake_bootstrap_generator="MSYS Makefiles"
 
-# Choose tools and extensions for this platform.
-if ${cmake_system_openvms}; then
-  _tmp="_tmp"
-  _cmk="_cmk"
-  _diff=`which diff`
-else
-  _tmp=".tmp"
-  _cmk=".cmk"
-  _diff="diff"
-fi
+# Set tools and extensions for this platform.
+_tmp=".tmp"
+_cmk=".cmk"
+_diff="diff"
 
 # Construct bootstrap directory name.
 cmake_bootstrap_dir="${cmake_binary_dir}/Bootstrap${_cmk}"
 
 # Helper function to fix windows paths.
-case "${cmake_system}" in
-*MINGW*)
-  cmake_fix_slashes()
-  {
+cmake_fix_slashes() {
     cmd //c echo "$(echo "$1" | sed 's/\\/\//g')" | sed 's/^"//;s/" *$//'
-  }
-  ;;
-*)
-  cmake_fix_slashes()
-  {
-    echo "$1" | sed 's/\\/\//g'
-  }
-  ;;
-esac
+}
 
 # Choose the default install prefix.
-if ${cmake_system_mingw}; then
-  if test "x${PROGRAMFILES}" != "x"; then
+if test "x${PROGRAMFILES}" != "x"; then
     cmake_default_prefix=`cmake_fix_slashes "${PROGRAMFILES}/CMake"`
-  elif test "x${ProgramFiles}" != "x"; then
+elif test "x${ProgramFiles}" != "x"; then
     cmake_default_prefix=`cmake_fix_slashes "${ProgramFiles}/CMake"`
-  elif test "x${SYSTEMDRIVE}" != "x"; then
+elif test "x${SYSTEMDRIVE}" != "x"; then
     cmake_default_prefix=`cmake_fix_slashes "${SYSTEMDRIVE}/Program Files/CMake"`
-  elif test "x${SystemDrive}" != "x"; then
+elif test "x${SystemDrive}" != "x"; then
     cmake_default_prefix=`cmake_fix_slashes "${SystemDrive}/Program Files/CMake"`
-  else
-    cmake_default_prefix="c:/Program Files/CMake"
-  fi
-elif ${cmake_system_haiku}; then
-  cmake_default_prefix=`finddir B_COMMON_DIRECTORY`
 else
-  cmake_default_prefix="/usr/local"
+    cmake_default_prefix="c:/Program Files/CMake"
 fi
 
 # Lookup default install destinations.
@@ -543,19 +424,11 @@ CMAKE_CXX_SOURCES="\
   cm_fileno \
 "
 
-if ${cmake_system_darwin}; then
-  CMAKE_CXX_SOURCES="${CMAKE_CXX_SOURCES}\
-    cmMachO \
-  "
-fi
-
-if ${cmake_system_mingw}; then
-  CMAKE_CXX_SOURCES="${CMAKE_CXX_SOURCES}\
+CMAKE_CXX_SOURCES="${CMAKE_CXX_SOURCES}\
     cmGlobalMSYSMakefileGenerator \
     cmGlobalMinGWMakefileGenerator \
     cmVSSetupHelper \
-  "
-fi
+"
 
 CMAKE_C_SOURCES="\
   cm_utf8 \
@@ -584,21 +457,12 @@ LexerParser_C_SOURCES="\
   cmListFileLexer \
 "
 
-if ${cmake_system_mingw}; then
-  KWSYS_C_SOURCES="\
+KWSYS_C_SOURCES="\
     EncodingC \
     ProcessWin32 \
     String \
     System \
-  "
-else
-  KWSYS_C_SOURCES="\
-    EncodingC \
-    ProcessUNIX \
-    String \
-    System \
-  "
-fi
+"
 
 KWSYS_CXX_SOURCES="\
   Directory \
@@ -642,8 +506,7 @@ JSONCPP_CXX_SOURCES="\
   src/lib_json/json_writer.cpp \
   "
 
-if ${cmake_system_mingw}; then
-  LIBUV_C_SOURCES="\
+LIBUV_C_SOURCES="\
     src/fs-poll.c \
     src/idna.c
     src/inet.c \
@@ -676,30 +539,7 @@ if ${cmake_system_mingw}; then
     src/win/util.c \
     src/win/winapi.c \
     src/win/winsock.c \
-    "
-else
-  LIBUV_C_SOURCES="\
-    src/strscpy.c \
-    src/strtok.c \
-    src/timer.c \
-    src/uv-common.c \
-    src/unix/cmake-bootstrap.c \
-    src/unix/core.c \
-    src/unix/fs.c \
-    src/unix/loop.c \
-    src/unix/loop-watcher.c \
-    src/unix/no-fsevents.c \
-    src/unix/pipe.c \
-    src/unix/poll.c \
-    src/unix/posix-hrtime.c \
-    src/unix/posix-poll.c \
-    src/unix/process.c \
-    src/unix/signal.c \
-    src/unix/stream.c \
-    src/unix/tcp.c \
-    src/unix/tty.c \
-    "
-fi
+"
 
 # Display CMake bootstrap usage
 cmake_usage()
@@ -831,7 +671,7 @@ cmake_replace_string ()
   OUTFILE="$2"
   SEARCHFOR="$3"
   REPLACEWITH="$4"
-  if test -f "${INFILE}" || ${cmake_system_openvms}; then
+  if test -f "${INFILE}"; then
     sed "s/\@${SEARCHFOR}\@/${REPLACEWITH}/g" "${INFILE}" > "${OUTFILE}${_tmp}"
     if test -f "${OUTFILE}${_tmp}"; then
       if "${_diff}" "${OUTFILE}" "${OUTFILE}${_tmp}" > /dev/null 2> /dev/null ; then
@@ -852,7 +692,7 @@ cmake_kwsys_config_replace_string ()
   OUTFILE="$2"
   shift 2
   APPEND="$*"
-  if test -f "${INFILE}" || ${cmake_system_openvms}; then
+  if test -f "${INFILE}"; then
     echo "${APPEND}" > "${OUTFILE}${_tmp}"
     sed "/./ {s/\@KWSYS_NAMESPACE\@/cmsys/g;
               s/@KWSYS_BUILD_SHARED@/${KWSYS_BUILD_SHARED}/g;
@@ -873,6 +713,7 @@ cmake_kwsys_config_replace_string ()
     cmake_error 2 "Cannot find file ${INFILE}"
   fi
 }
+
 # Write string into a file
 cmake_report ()
 {
@@ -1046,7 +887,7 @@ done
 
 # Make sure the generator is valid
 case "${cmake_bootstrap_generator}" in
-  'MSYS Makefiles'|'Unix Makefiles'|'Ninja') ;;
+  'MSYS Makefiles'|'Ninja') ;;
   *) cmake_error 10 "Invalid generator: ${cmake_bootstrap_generator}"
 esac
 
@@ -1158,44 +999,9 @@ else
     "
 fi
 
-# Add Cygwin-specific flags
-if ${cmake_system_cygwin} || ${cmake_system_msys}; then
-  cmake_ld_flags="${LDFLAGS} -Wl,--enable-auto-import"
-fi
-
-# Add CoreFoundation framework on Darwin
-if ${cmake_system_darwin}; then
-  cmake_ld_flags="${LDFLAGS} -framework CoreFoundation"
-fi
-
-# Add BeOS toolkits...
-if ${cmake_system_beos}; then
-  cmake_ld_flags="${LDFLAGS} -lroot -lbe"
-fi
-
-# Add Haiku toolkits...
-if ${cmake_system_haiku}; then
-  cmake_ld_flags="${LDFLAGS} -lroot -lbe"
-fi
-
-# Add AIX arch-specific link flags.
-if ${cmake_system_aix}; then
-  if uname -p | grep powerpc >/dev/null 2>&1; then
-    cmake_ld_flags="${LDFLAGS} -Wl,-bbigtoc"
-  fi
-fi
-
 #-----------------------------------------------------------------------------
-# Detect known toolchains on some platforms.
-cmake_toolchains=''
-case "${cmake_system}" in
-  *AIX*)   cmake_toolchains='XL GNU' ;;
-  *CYGWIN*) cmake_toolchains='GNU' ;;
-  *MSYS*) cmake_toolchains='GNU' ;;
-  *Darwin*) cmake_toolchains='Clang GNU' ;;
-  *Linux*) cmake_toolchains='GNU Clang XL PGI PathScale' ;;
-  *MINGW*) cmake_toolchains='GNU' ;;
-esac
+# Set known toolchains on MinGW.
+cmake_toolchains='GNU'
 
 # Toolchain compiler name table.
 cmake_toolchain_Clang_CC='clang'
@@ -1245,11 +1051,6 @@ cmake_toolchain_detect()
 if test -z "${CC}" && test -z "${CXX}"; then
   cmake_toolchain_detect
 fi
-
-thread_flags=''
-case "${cmake_system}" in
-  *AIX*)   thread_flags='-pthread' ;;
-esac
 
 #-----------------------------------------------------------------------------
 # Test C compiler
@@ -1313,11 +1114,12 @@ int main(int argc, char* argv[])
   return 1
 }
 
+# TODO: These calls to cmake_c_compiler_try_set might be unnecessary if the thread_flags variable is always empty
 if test -n "${CC}"; then
-  cmake_c_compiler_try_set "${CC}" "${thread_flags}"
+  cmake_c_compiler_try_set "${CC}" ""
 else
   for compiler in ${cmake_c_compilers}; do
-    if cmake_c_compiler_try_set "${compiler}" "${thread_flags}"; then
+    if cmake_c_compiler_try_set "${compiler}" ""; then
       break
     fi
   done
@@ -1448,11 +1250,12 @@ int main()
   return 1
 }
 
+# TODO: These calls to cmake_cxx_compiler_try_set might be unnecessary if the thread_flags variable is always empty
 if test -n "${CXX}"; then
-  cmake_cxx_compiler_try_set "${CXX}" "${thread_flags}"
+  cmake_cxx_compiler_try_set "${CXX}" ""
 else
   for compiler in ${cmake_cxx_compilers}; do
-    if cmake_cxx_compiler_try_set "${compiler}" "${thread_flags}"; then
+    if cmake_cxx_compiler_try_set "${compiler}" ""; then
       break
     fi
   done
@@ -1661,13 +1464,8 @@ cmake_report cmConfigure.h${_tmp} "${cmake_compiler_settings_comment}"
 
 # When bootstrapping on MinGW with MSYS we must convert the source
 # directory to a windows path.
-if ${cmake_system_mingw}; then
-    CMAKE_BOOTSTRAP_SOURCE_DIR=`cd "${cmake_source_dir}"; pwd -W`
-    CMAKE_BOOTSTRAP_BINARY_DIR=`cd "${cmake_binary_dir}"; pwd -W`
-else
-    CMAKE_BOOTSTRAP_SOURCE_DIR="${cmake_source_dir}"
-    CMAKE_BOOTSTRAP_BINARY_DIR="${cmake_binary_dir}"
-fi
+CMAKE_BOOTSTRAP_SOURCE_DIR=`cd "${cmake_source_dir}"; pwd -W`
+CMAKE_BOOTSTRAP_BINARY_DIR=`cd "${cmake_binary_dir}"; pwd -W`
 
 # Write CMake version
 cmake_report cmVersionConfig.h${_tmp} "#define CMake_VERSION_MAJOR ${cmake_version_major}"
@@ -1687,18 +1485,12 @@ else
   cmake_report cmConfigure.h${_tmp} "#define CMAKE_BOOTSTRAP_MAKEFILES"
 fi
 
-if ${cmake_system_darwin}; then
-  cmake_report cmConfigure.h${_tmp} "#define CMake_USE_MACH_PARSER"
-fi
-
-if ${cmake_system_mingw}; then
-  cmake_report cmConfigure.h${_tmp} "#if defined(_WIN32) && !defined(NOMINMAX)"
-  cmake_report cmConfigure.h${_tmp} "#  define NOMINMAX"
-  cmake_report cmConfigure.h${_tmp} "#endif"
-  cmake_report cmConfigure.h${_tmp} "#if defined(_WIN32) && !defined(KWSYS_ENCODING_DEFAULT_CODEPAGE)"
-  cmake_report cmConfigure.h${_tmp} "#  define KWSYS_ENCODING_DEFAULT_CODEPAGE CP_UTF8"
-  cmake_report cmConfigure.h${_tmp} "#endif"
-fi
+cmake_report cmConfigure.h${_tmp} "#if defined(_WIN32) && !defined(NOMINMAX)"
+cmake_report cmConfigure.h${_tmp} "#  define NOMINMAX"
+cmake_report cmConfigure.h${_tmp} "#endif"
+cmake_report cmConfigure.h${_tmp} "#if defined(_WIN32) && !defined(KWSYS_ENCODING_DEFAULT_CODEPAGE)"
+cmake_report cmConfigure.h${_tmp} "#  define KWSYS_ENCODING_DEFAULT_CODEPAGE CP_UTF8"
+cmake_report cmConfigure.h${_tmp} "#endif"
 
 # Regenerate configured headers
 for h in Configure VersionConfig; do
@@ -1772,47 +1564,11 @@ fi
 libs=""
 
 uv_c_flags=""
-if ${cmake_system_mingw}; then
-  uv_c_flags="${uv_c_flags} -DWIN32_LEAN_AND_MEAN -D_WIN32_WINNT=0x0600"
-  libs="${libs} -ladvapi32 -ldbghelp -liphlpapi -lole32 -loleaut32 -lpsapi -lshell32 -luser32 -luserenv -luuid -lws2_32"
-else
-  case "${cmake_system}" in
-    *AIX*)
-      uv_c_flags="${uv_c_flags} -D_ALL_SOURCE -D_XOPEN_SOURCE=500 -D_LINUX_SOURCE_COMPAT"
-      libs="${libs} -lperfstat"
-      ;;
-    *Darwin*)
-      uv_c_flags="${uv_c_flags} -D_DARWIN_USE_64_BIT_INODE=1 -D_DARWIN_UNLIMITED_SELECT=1"
-      ;;
-    *HP-UX*)
-      uv_c_flags="${uv_c_flags} -D_XOPEN_SOURCE_EXTENDED"
-      ;;
-    *Linux*)
-      uv_c_flags="${uv_c_flags} -D_GNU_SOURCE"
-      libs="${libs} -ldl -lrt"
-      ;;
-    *NetBSD*)
-      libs="${libs} -lkvm"
-      ;;
-    *BSD*)
-      ;;
-    *SunOS*)
-      uv_c_flags="${uv_c_flags} -D__EXTENSIONS__ -D_XOPEN_SOURCE=600"
-      libs="${libs} -lkstat -lnsl -lsendfile -lsocket -lrt"
-      ;;
-    *QNX*)
-      uv_c_flags="${uv_c_flags} -D_XOPEN_SOURCE=700"
-      libs="${libs} -lsocket"
-      ;;
-  esac
-fi
+uv_c_flags="${uv_c_flags} -DWIN32_LEAN_AND_MEAN -D_WIN32_WINNT=0x0600"
+libs="${libs} -ladvapi32 -ldbghelp -liphlpapi -lole32 -loleaut32 -lpsapi -lshell32 -luser32 -luserenv -luuid -lws2_32"
 if test "x${bootstrap_system_libuv}" = "x"; then
   uv_c_flags="${uv_c_flags} `cmake_escape_shell "-I${cmake_source_dir}/Utilities/cmlibuv/include"`"
-  if ${cmake_system_mingw}; then
-    uv_c_flags="${uv_c_flags} `cmake_escape_shell "-I${cmake_source_dir}/Utilities/cmlibuv/src/win"`"
-  else
-    uv_c_flags="${uv_c_flags} `cmake_escape_shell "-I${cmake_source_dir}/Utilities/cmlibuv/src/unix"`"
-  fi
+  uv_c_flags="${uv_c_flags} `cmake_escape_shell "-I${cmake_source_dir}/Utilities/cmlibuv/src/win"`"
   uv_c_flags="${uv_c_flags} `cmake_escape_shell "-I${cmake_source_dir}/Utilities/cmlibuv/src"`"
 else
   if test `which pkg-config`; then
@@ -1901,11 +1657,9 @@ write_source_rule() {
 }
 
 cmake_c_flags_String="-DKWSYS_STRING_C"
-if ${cmake_system_mingw}; then
-  cmake_c_flags_EncodingC="-DKWSYS_ENCODING_DEFAULT_CODEPAGE=CP_ACP"
-  cmake_cxx_flags_EncodingCXX="${cmake_c_flags_EncodingC}"
-  cmake_cxx_flags_cmProcessOutput="${cmake_c_flags_EncodingC}"
-fi
+cmake_c_flags_EncodingC="-DKWSYS_ENCODING_DEFAULT_CODEPAGE=CP_ACP"
+cmake_cxx_flags_EncodingCXX="${cmake_c_flags_EncodingC}"
+cmake_cxx_flags_cmProcessOutput="${cmake_c_flags_EncodingC}"
 cmake_cxx_flags_SystemTools="
   -DKWSYS_CXX_HAS_SETENV=${KWSYS_CXX_HAS_SETENV}
   -DKWSYS_CXX_HAS_UNSETENV=${KWSYS_CXX_HAS_UNSETENV}
