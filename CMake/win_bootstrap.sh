@@ -1574,13 +1574,14 @@ fi
 
 libs=""
 
+# WIN_PATH DONE
 uv_c_flags=""
 uv_c_flags="${uv_c_flags} -DWIN32_LEAN_AND_MEAN -D_WIN32_WINNT=0x0600"
 libs="${libs} -ladvapi32 -ldbghelp -liphlpapi -lole32 -loleaut32 -lpsapi -lshell32 -luser32 -luserenv -luuid -lws2_32"
 if test "x${bootstrap_system_libuv}" = "x"; then
-  uv_c_flags="${uv_c_flags} `cmake_escape_shell "-I${cmake_source_dir}/Utilities/cmlibuv/include"`"
-  uv_c_flags="${uv_c_flags} `cmake_escape_shell "-I${cmake_source_dir}/Utilities/cmlibuv/src/win"`"
-  uv_c_flags="${uv_c_flags} `cmake_escape_shell "-I${cmake_source_dir}/Utilities/cmlibuv/src"`"
+  uv_c_flags="${uv_c_flags} `cmake_escape_shell "-I${win_cmake_source_dir}\\Utilities\\cmlibuv\\include"`"
+  uv_c_flags="${uv_c_flags} `cmake_escape_shell "-I${win_cmake_source_dir}\\Utilities\\cmlibuv\\src\\win"`"
+  uv_c_flags="${uv_c_flags} `cmake_escape_shell "-I${win_cmake_source_dir}\\Utilities\\cmlibuv\\src"`"
 else
   if test `which pkg-config`; then
     use_uv_flags="`pkg-config --cflags libuv`"
@@ -1608,7 +1609,8 @@ fi
 
 jsoncpp_cxx_flags=
 if test "x${bootstrap_system_jsoncpp}" = "x"; then
-  jsoncpp_cxx_flags="${jsoncpp_cxx_flags} `cmake_escape_shell "-I${cmake_source_dir}/Utilities/cmjsoncpp/include"`"
+  # WIN_PATH DONE
+  jsoncpp_cxx_flags="${jsoncpp_cxx_flags} `cmake_escape_shell "-I${win_cmake_source_dir}\\Utilities\\cmjsoncpp\\include"`"
 else
   if test `which pkg-config`; then
     use_jsoncpp_flags="`pkg-config --cflags jsoncpp`"
@@ -1679,7 +1681,7 @@ cmake_cxx_flags_SystemTools="
   -DKWSYS_CXX_HAS_UTIMENSAT=${KWSYS_CXX_HAS_UTIMENSAT}
   -DKWSYS_CXX_HAS_UTIMES=${KWSYS_CXX_HAS_UTIMES}
 "
-echo "Before flags: ${cmake_c_flags}"
+
 # WIN_PATH DONE
 cmake_c_flags="${cmake_c_flags} \
   -DCMAKE_BOOTSTRAP \
@@ -1714,11 +1716,20 @@ else
   echo "cmake: ${objs}" > "${cmake_bootstrap_dir}/Makefile"
   echo "${tab}${cmake_cxx_compiler} ${cmake_ld_flags} ${cmake_cxx_flags} ${objs} ${libs} -o cmake" >> "${cmake_bootstrap_dir}/Makefile"
 fi
+
+for v in ${!cmake_cxx_flags_@}; do
+    printf '%s=%s\n' "$v" "${!v}"
+done
+echo "-----"
+for v in ${!cmake_c_flags_@}; do
+    printf '%s=%s\n' "$v" "${!v}"
+done
+
 # WIN_PATH DONE
 for a in ${CMAKE_CXX_SOURCES}; do
   src_path="${win_cmake_source_dir}\\Source\\${a}.cxx"
   src=`cmake_escape_artifact ${src_path}`
-  src_flags=`eval echo \\${cmake_cxx_flags_\${a}}`
+  src_flags=`eval echo \\${cmake_cxx_flags_${a}}`
   write_source_rule "cxx" "${a}.o" "${src}" "${src_flags}"
 done
 # WIN_PATH DONE
