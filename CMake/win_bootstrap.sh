@@ -54,6 +54,7 @@ cmake_system=`uname`
 cmake_source_dir=`cd "\`dirname \"$0\"\`";pwd`
 win_cmake_source_dir=$(cygpath -w $cmake_source_dir)
 cmake_binary_dir=`pwd`
+win_cmake_binary_dir=$(cygpath -w $cmake_binary_dir)
 
 # Load version information.
 cmake_version_major="`cmake_version_component MAJOR`"
@@ -1804,9 +1805,10 @@ rule rebuild_cache
 build build.ninja : rebuild_cache
 " >> "${cmake_bootstrap_dir}/build.ninja"
 else
+  # WIN_PATH DONE
   echo "
 rebuild_cache:
-${tab}cd \"${cmake_binary_dir}\" && \"${cmake_source_dir}/bootstrap\" --generator=\"${cmake_bootstrap_generator}\"
+${tab}cd \"${win_cmake_binary_dir}\" && \"${win_cmake_source_dir}\\bootstrap\" --generator=\"${cmake_bootstrap_generator}\"
 " >> "${cmake_bootstrap_dir}/Makefile"
 fi
 
