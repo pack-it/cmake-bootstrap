@@ -52,6 +52,7 @@ cmake_toupper()
 # Detect system and directory information.
 cmake_system=`uname`
 cmake_source_dir=`cd "\`dirname \"$0\"\`";pwd`
+win_cmake_source_dir=$(cygpath -w $cmake_source_dir)
 cmake_binary_dir=`pwd`
 
 # Load version information.
@@ -107,6 +108,7 @@ _diff="diff"
 
 # Construct bootstrap directory name.
 cmake_bootstrap_dir="${cmake_binary_dir}/Bootstrap${_cmk}"
+win_cmake_bootstrap_dir=$(cygpath -w $cmake_bootstrap_dir)
 
 # Helper function to fix windows paths.
 cmake_fix_slashes() {
@@ -1502,7 +1504,8 @@ for h in Configure VersionConfig; do
 done
 
 # Prepare KWSYS
-cmsys_header_files="cmsys/Configure.h cmsys/Configure.hxx"
+# WIN_PATH DONE
+cmsys_header_files="cmsys\\Configure.h cmsys\\Configure.hxx"
 cmake_kwsys_config_replace_string \
   "${cmake_source_dir}/Source/kwsys/Configure.hxx.in" \
   "${cmake_bootstrap_dir}/cmsys/Configure.hxx" \
@@ -1512,10 +1515,11 @@ cmake_kwsys_config_replace_string \
   "${cmake_bootstrap_dir}/cmsys/Configure.h" \
   "${cmake_compiler_settings_comment}"
 
+# WIN_PATH DONE
 for a in ${KWSYS_FILES}; do
   cmake_replace_string "${cmake_source_dir}/Source/kwsys/${a}.in" \
      "${cmake_bootstrap_dir}/cmsys/${a}" KWSYS_NAMESPACE cmsys
-  cmsys_header_files="${cmsys_header_files} cmsys/${a}"
+  cmsys_header_files="${cmsys_header_files} cmsys\\${a}"
 done
 
 echo "#pragma once" > "${cmake_bootstrap_dir}/cmThirdParty.h.tmp"
@@ -1532,14 +1536,17 @@ cmake_generate_file_tmp "${cmake_bootstrap_dir}/cmThirdParty.h" "${cmake_bootstr
 
 # Generate Makefile
 dep="cmConfigure.h ${cmsys_header_files}"
-for h in "${cmake_source_dir}"/Source/*.hxx; do
+# WIN_PATH DONE (TODO: Maybe cmake escape artifact not necessary or wrong)
+for h in "${win_cmake_source_dir}"\\Source\\*.hxx; do
   dep="${dep} `cmake_escape_artifact \"${h}\"`"
 done
-for h in "${cmake_source_dir}"/Source/*.h; do
+# WIN_PATH DONE
+for h in "${win_cmake_source_dir}"\\Source\\*.h; do
   dep="${dep} `cmake_escape_artifact \"${h}\"`"
 done
+# WIN_PATH DONE
 for h in ${CMAKE_STD_CXX_HEADERS}; do
-  dep="${dep} `cmake_escape_artifact \"${cmake_source_dir}\"`/Utilities/std/cm/${h}"
+  dep="${dep} `cmake_escape_artifact \"${win_cmake_source_dir}\"`\\Utilities\\std\\cm\\${h}"
 done
 objs=""
 for a in ${CMAKE_CXX_SOURCES} ${CMAKE_C_SOURCES} ${CMAKE_STD_CXX_SOURCES} ${LexerParser_CXX_SOURCES} ${LexerParser_C_SOURCES} ${KWSYS_CXX_SOURCES} ${KWSYS_C_SOURCES}; do
@@ -1654,6 +1661,7 @@ write_source_rule() {
     echo "${obj} : ${src} ${dep}" >> "${cmake_bootstrap_dir}/Makefile"
     echo "${tab}${compiler} ${flags} ${src_flags} -c ${src} -o ${obj}" >> "${cmake_bootstrap_dir}/Makefile"
   fi
+  echo "Flags: ${src_flags}"
 }
 
 cmake_c_flags_String="-DKWSYS_STRING_C"
@@ -1667,20 +1675,23 @@ cmake_cxx_flags_SystemTools="
   -DKWSYS_CXX_HAS_UTIMENSAT=${KWSYS_CXX_HAS_UTIMENSAT}
   -DKWSYS_CXX_HAS_UTIMES=${KWSYS_CXX_HAS_UTIMES}
 "
+echo "Before flags: ${cmake_c_flags}"
+# WIN_PATH DONE
 cmake_c_flags="${cmake_c_flags} \
   -DCMAKE_BOOTSTRAP \
-  -I`cmake_escape_shell \"${cmake_bootstrap_dir}\"` \
-  -I`cmake_escape_shell \"${cmake_source_dir}/Source\"` \
-  -I`cmake_escape_shell \"${cmake_source_dir}/Source/LexerParser\"` \
-  -I`cmake_escape_shell \"${cmake_source_dir}/Utilities\"`"
+  -I`cmake_escape_shell \"${win_cmake_bootstrap_dir}\"` \
+  -I`cmake_escape_shell \"${win_cmake_source_dir}\\Source\"` \
+  -I`cmake_escape_shell \"${win_cmake_source_dir}\\Source\\LexerParser\"` \
+  -I`cmake_escape_shell \"${win_cmake_source_dir}\\Utilities\"`"
+# WIN_PATH DONE
 cmake_cxx_flags="${cmake_cxx_flags} \
   -DCMAKE_BOOTSTRAP \
   ${cmake_have_cxx_features} \
-  -I`cmake_escape_shell \"${cmake_bootstrap_dir}\"` \
-  -I`cmake_escape_shell \"${cmake_source_dir}/Source\"` \
-  -I`cmake_escape_shell \"${cmake_source_dir}/Source/LexerParser\"` \
-  -I`cmake_escape_shell \"${cmake_source_dir}/Utilities/std\"` \
-  -I`cmake_escape_shell \"${cmake_source_dir}/Utilities\"`"
+  -I`cmake_escape_shell \"${win_cmake_bootstrap_dir}\"` \
+  -I`cmake_escape_shell \"${win_cmake_source_dir}\\Source\"` \
+  -I`cmake_escape_shell \"${win_cmake_source_dir}\\Source\\LexerParser\"` \
+  -I`cmake_escape_shell \"${win_cmake_source_dir}\\Utilities\\std\"` \
+  -I`cmake_escape_shell \"${win_cmake_source_dir}\\Utilities\"`"
 if test "${cmake_bootstrap_generator}" = "Ninja"; then
   echo "cc = ${cmake_c_compiler}" > "${cmake_bootstrap_dir}/build.ninja"
   echo "cxx = ${cmake_cxx_compiler}" >> "${cmake_bootstrap_dir}/build.ninja"
@@ -1699,54 +1710,74 @@ else
   echo "cmake: ${objs}" > "${cmake_bootstrap_dir}/Makefile"
   echo "${tab}${cmake_cxx_compiler} ${cmake_ld_flags} ${cmake_cxx_flags} ${objs} ${libs} -o cmake" >> "${cmake_bootstrap_dir}/Makefile"
 fi
+# WIN_PATH DONE
 for a in ${CMAKE_CXX_SOURCES}; do
-  src=`cmake_escape_artifact "${cmake_source_dir}/Source/${a}.cxx"`
+  src_path="${win_cmake_source_dir}\\Source\\${a}.cxx"
+  src=`cmake_escape_artifact ${src_path}`
   src_flags=`eval echo \\${cmake_cxx_flags_\${a}}`
   write_source_rule "cxx" "${a}.o" "${src}" "${src_flags}"
 done
+# WIN_PATH DONE
 for a in ${CMAKE_C_SOURCES}; do
-  src=`cmake_escape_artifact "${cmake_source_dir}/Source/${a}.c"`
+  src_path="${win_cmake_source_dir}\\Source\\${a}.c"
+  src=`cmake_escape_artifact ${src_path}`
   write_source_rule "c" "${a}.o" "${src}" ""
 done
+# WIN_PATH DONE
 for a in ${CMAKE_STD_CXX_SOURCES}; do
-  src=`cmake_escape_artifact "${cmake_source_dir}/Utilities/std/cm/bits/${a}.cxx"`
+  src_path="${win_cmake_source_dir}\\Utilities\\std\\cm\\bits\\${a}.cxx"
+  src=`cmake_escape_artifact ${src_path}`
   src_flags=`eval echo \\${cmake_cxx_flags_\${a}}`
   write_source_rule "cxx" "${a}.o" "${src}" "${src_flags}"
 done
+# WIN_PATH DONE
 for a in ${LexerParser_CXX_SOURCES}; do
-  src=`cmake_escape_artifact "${cmake_source_dir}/Source/LexerParser/${a}.cxx"`
+  src_path="${win_cmake_source_dir}\\Source\\LexerParser\\${a}.cxx"
+  src=`cmake_escape_artifact ${src_path}`
   src_flags=`eval echo \\${cmake_cxx_flags_\${a}}`
   write_source_rule "cxx" "${a}.o" "${src}" "${src_flags}"
 done
+# WIN_PATH DONE
 for a in ${LexerParser_C_SOURCES}; do
-  src=`cmake_escape_artifact "${cmake_source_dir}/Source/LexerParser/${a}.c"`
+  src_path="${win_cmake_source_dir}\\Source\\LexerParser\\${a}.c"
+  src=`cmake_escape_artifact ${src_path}`
   write_source_rule "c" "${a}.o" "${src}" ""
 done
+# WIN_PATH DONE
 for a in ${KWSYS_C_SOURCES}; do
-  src=`cmake_escape_artifact "${cmake_source_dir}/Source/kwsys/${a}.c"`
+  src_path="${win_cmake_source_dir}\\Source\\kwsys\\${a}.c"
+  src=`cmake_escape_artifact ${src_path}`
   src_flags="`eval echo \\${cmake_c_flags_\${a}}` -DKWSYS_NAMESPACE=cmsys"
   write_source_rule "c" "${a}.o" "${src}" "${src_flags}"
 done
+# WIN_PATH DONE
 for a in ${KWSYS_CXX_SOURCES}; do
-  src=`cmake_escape_artifact "${cmake_source_dir}/Source/kwsys/${a}.cxx"`
+  src_path="${win_cmake_source_dir}\\Source\\kwsys\\${a}.cxx"
+  src=`cmake_escape_artifact ${src_path}`
   src_flags="`eval echo \\${cmake_cxx_flags_\${a}}` -DKWSYS_NAMESPACE=cmsys"
   write_source_rule "cxx" "${a}.o" "${src}" "${src_flags}"
 done
+# WIN_PATH DONE
 if test "x${bootstrap_system_libuv}" = "x"; then
   for a in ${LIBUV_C_SOURCES}; do
-    src=`cmake_escape_artifact "${cmake_source_dir}/Utilities/cmlibuv/${a}"`
+    src_path="${win_cmake_source_dir}\\Utilities\\cmlibuv\\${a}"
+    src=`cmake_escape_artifact ${src_path}`
     write_source_rule "c" "uv-`cmake_obj ${a}`" "${src}" "${uv_c_flags}"
   done
 fi
+# WIN_PATH DONE
 if test "x${bootstrap_system_librhash}" = "x"; then
   for a in ${LIBRHASH_C_SOURCES}; do
-    src=`cmake_escape_artifact "${cmake_source_dir}/Utilities/cmlibrhash/${a}"`
+    src_path="${win_cmake_source_dir}\\Utilities\\cmlibrhash\\${a}"
+    src=`cmake_escape_artifact ${src_path}`
     write_source_rule "c" "rhash-`cmake_obj ${a}`" "${src}" "${librhash_c_flags}"
   done
 fi
+# WIN_PATH DONE
 if test "x${bootstrap_system_jsoncpp}" = "x"; then
   for a in ${JSONCPP_CXX_SOURCES}; do
-    src=`cmake_escape_artifact "${cmake_source_dir}/Utilities/cmjsoncpp/${a}"`
+    src_path="${win_cmake_source_dir}\\Utilities\\cmjsoncpp\\${a}"
+    src=`cmake_escape_artifact ${src_path}`
     write_source_rule "cxx" "jsoncpp-`cmake_obj ${a}`" "${src}" "${jsoncpp_cxx_flags}"
   done
 fi
@@ -1763,6 +1794,8 @@ rebuild_cache:
 ${tab}cd \"${cmake_binary_dir}\" && \"${cmake_source_dir}/bootstrap\" --generator=\"${cmake_bootstrap_generator}\"
 " >> "${cmake_bootstrap_dir}/Makefile"
 fi
+
+
 
 # Write our default settings to Bootstrap${_cmk}/InitialCacheFlags.cmake.
 echo '
