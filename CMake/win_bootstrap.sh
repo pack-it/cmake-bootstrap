@@ -1537,11 +1537,15 @@ cmake_generate_file_tmp "${cmake_bootstrap_dir}/cmThirdParty.h" "${cmake_bootstr
 # Generate Makefile
 dep="cmConfigure.h ${cmsys_header_files}"
 # WIN_PATH DONE (TODO: Maybe cmake escape artifact not necessary or wrong)
-for h in "${win_cmake_source_dir}"\\Source\\*.hxx; do
+for h in "${cmake_source_dir}"/Source/*.hxx; do
+  # Convert to windows path
+  h=$(cygpath -w $h)
   dep="${dep} `cmake_escape_artifact \"${h}\"`"
 done
 # WIN_PATH DONE
-for h in "${win_cmake_source_dir}"\\Source\\*.h; do
+for h in "${cmake_source_dir}"/Source/*.h; do
+  # Convert to windows path
+  h=$(cygpath -w $h)
   dep="${dep} `cmake_escape_artifact \"${h}\"`"
 done
 # WIN_PATH DONE
