@@ -57,10 +57,7 @@ function cmake_install_dest_default {
     ).Line -replace $pattern,'$1' -replace "\$\{CMake_VERSION_MAJOR\}", "${cmake_version_major}" -replace "\$\{CMake_VERSION_MINOR\}", "${cmake_version_minor}" -replace "\$\{CMake_VERSION_PATCH\}", "${cmake_version_patch}"
 }
 
-# cmake_toupper()
-# {
-#     echo "$1" | tr '[a-z]' '[A-Z]'
-# }
+# NOTE upper method removed, internal methods available
 
 # Detect system and directory information.
 # CHANGE: uname was used here before, this variable is not really used though
@@ -115,7 +112,7 @@ $cmake_bootstrap_generator="MSYS Makefiles"
 # CHECK .tmp for command line/windows
 $_tmp=".tmp"
 $_cmk=".cmk"
-$_diff="diff"
+# NOTE _diff removed, because internal methods available
 
 # Construct bootstrap directory name.
 $cmake_bootstrap_dir="${cmake_binary_dir}\Bootstrap${_cmk}"
@@ -551,3 +548,138 @@ $LIBUV_C_SOURCES = @(
     "src/win/winapi.c",
     "src/win/winsock.c"
 )
+
+# Display CMake bootstrap usage
+function cmake_usage {
+    $script_name = $MyInvocation.MyCommand.Name
+    Write-Output "
+Usage: $script_name [<options>...] [-- <cmake-options>...]
+Options: [defaults in brackets after descriptions]
+Configuration:
+  --help                  print this message
+  --version               only print version information
+  --verbose               display more information
+  --parallel=n            bootstrap cmake in parallel, where n is
+                          number of nodes [1]
+  --generator=<generator> generator to use (MSYS Makefiles, Unix Makefiles,
+                          or Ninja)
+  --enable-ccache         Enable ccache when building cmake
+  --init=FILE             load FILE as script to populate cache
+  --system-libs           use all system-installed third-party libraries
+                          (for use only by package maintainers)
+  --no-system-libs        use all cmake-provided third-party libraries
+                          (default)
+  --system-cppdap         use system-installed cppdap library
+  --no-system-cppdap      use cmake-provided cppdap library (default)
+  --system-curl           use system-installed curl library (default on macOS)
+  --no-system-curl        use cmake-provided curl library (default elsewhere)
+  --system-expat          use system-installed expat library
+  --no-system-expat       use cmake-provided expat library (default)
+  --system-jsoncpp        use system-installed jsoncpp library
+  --no-system-jsoncpp     use cmake-provided jsoncpp library (default)
+  --system-zlib           use system-installed zlib library
+  --no-system-zlib        use cmake-provided zlib library (default)
+  --system-bzip2          use system-installed bzip2 library
+  --no-system-bzip2       use cmake-provided bzip2 library (default)
+  --system-liblzma        use system-installed liblzma library
+  --no-system-liblzma     use cmake-provided liblzma library (default)
+  --system-nghttp2        use system-installed nghttp2 library
+  --no-system-nghttp2     use cmake-provided nghttp2 library (default)
+  --system-zstd           use system-installed zstd library
+  --no-system-zstd        use cmake-provided zstd library (default)
+  --system-libarchive     use system-installed libarchive library
+  --no-system-libarchive  use cmake-provided libarchive library (default)
+  --system-librhash       use system-installed librhash library
+  --no-system-librhash    use cmake-provided librhash library (default)
+  --system-libuv          use system-installed libuv library
+  --no-system-libuv       use cmake-provided libuv library (default)
+
+  --bootstrap-system-libuv use system-installed libuv library for bootstrap
+  --bootstrap-system-jsoncpp use system-installed jsoncpp library for bootstrap
+  --bootstrap-system-librhash use system-installed librhash library for bootstrap
+
+  --qt-gui                build the Qt-based GUI (requires Qt >= 4.2)
+  --no-qt-gui             do not build the Qt-based GUI (default)
+  --qt-qmake=<qmake>      use <qmake> as the qmake executable to find Qt
+
+  --debugger              enable debugger support (default if supported)
+  --no-debugger           disable debugger support
+
+  --sphinx-info           build Info manual with Sphinx
+  --sphinx-man            build man pages with Sphinx
+  --sphinx-html           build html help with Sphinx
+  --sphinx-qthelp         build qch help with Sphinx
+  --sphinx-latexpdf       build PDF with Sphinx using LaTeX
+  --sphinx-build=<sb>     use <sb> as the sphinx-build executable
+  --sphinx-flags=<flags>  pass <flags> to sphinx-build executable
+
+Directory and file names:
+  --prefix=PREFIX         install files in tree rooted at PREFIX
+                          [${cmake_default_prefix}]
+  --bindir=DIR            install binaries in PREFIX/DIR
+                          [${cmake_bin_dir_default}]
+  --datadir=DIR           install data files in PREFIX/DIR
+                          [${cmake_data_dir_default}]
+  --docdir=DIR            install documentation files in PREFIX/DIR
+                          [${cmake_doc_dir_default}]
+  --mandir=DIR            install man pages files in PREFIX/DIR/manN
+                          [${cmake_man_dir_default}]
+  --xdgdatadir=DIR        install XDG specific files in PREFIX/DIR
+                          [${cmake_xdgdata_dir_default}]
+"
+    exit 10
+}
+
+# Display CMake bootstrap usage
+function cmake_version_display {
+    Write-Output "CMake ${cmake_version}, ${cmake_copyright}"
+}
+
+# Display CMake bootstrap error, display the log file and exit
+function cmake_error {
+    param (
+        [Parameter(Position = 0)]
+        $res,
+
+        [Parameter(ValueFromRemainingArguments = $true)]
+        $Messages
+    )
+
+    Write-Output "---------------------------------------------"
+    Write-Output "Error when bootstrapping CMake:"
+    Write-Output "$Messages"
+    Write-Output "---------------------------------------------"
+    if (Test-Path "cmake_bootstrap.log") {
+        Write-Output "Log of errors: `pwd`/cmake_bootstrap.log"
+        Write-Output "---------------------------------------------"
+    }
+
+    exit $res
+}
+
+# Update OUTFILE with TMPFILE if the files are different.
+# TMPFILE is removed in this function. 
+function cmake_generate_file_tmp {
+    param (
+        $OUTFILE,
+        $TMPFILE
+    )
+
+    if ((Test-Path $outFile) -and (-not (Compare-Object (Get-Content $tmpFile) (Get-Content $outFile)))) {
+        Remove-Item $tmpFile -Force
+    } else {
+        Move-Item $tmpFile $outFile -Force
+    }
+}
+
+# CHECK should the extension be .tmp on native windows?
+function cmake_generate_file {
+    param (
+        $OUTFILE,
+        $CONTENT
+    )
+
+    Write-Output "$CONTENT" > "$OUTFILE.tmp"
+    cmake_generate_file_tmp "$OUTFILE" "$OUTFILE.tmp"
+}
+

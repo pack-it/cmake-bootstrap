@@ -640,7 +640,6 @@ cmake_error()
   echo "---------------------------------------------"
   if test -f cmake_bootstrap.log; then
     echo "Log of errors: `pwd`/cmake_bootstrap.log"
-    #cat cmake_bootstrap.log
     echo "---------------------------------------------"
   fi
   exit ${res}
