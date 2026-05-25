@@ -425,12 +425,9 @@ CMAKE_CXX_SOURCES="\
   cmakemain \
   cmcmd  \
   cm_fileno \
-"
-
-CMAKE_CXX_SOURCES="${CMAKE_CXX_SOURCES}\
-    cmGlobalMSYSMakefileGenerator \
-    cmGlobalMinGWMakefileGenerator \
-    cmVSSetupHelper \
+  cmGlobalMSYSMakefileGenerator \
+  cmGlobalMinGWMakefileGenerator \
+  cmVSSetupHelper \
 "
 
 CMAKE_C_SOURCES="\
@@ -445,6 +442,7 @@ CMAKE_STD_CXX_HEADERS="\
   string_view \
   utility \
 "
+
 CMAKE_STD_CXX_SOURCES="\
   fs_path \
   string_view \

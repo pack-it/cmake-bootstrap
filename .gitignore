@@ -1,2 +1,3 @@
 /CMake/*
 !/CMake/win_bootstrap.sh
+!/CMake/win_bootstrap.ps1
