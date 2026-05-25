@@ -1078,18 +1078,6 @@ cmake_c_compiler_try_set()
 # error "The CMAKE_C_COMPILER is set to a C++ compiler"
 #endif
 
-#if defined(_AIX) && defined(__GNUC__) && !defined(_THREAD_SAFE)
-#error "On AIX with GNU we need the -pthread flag."
-#endif
-
-#if defined(__sun) && __STDC_VERSION__ < 199901L
-#error "On Solaris we need C99."
-#endif
-
-#if defined(__hpux) && !(defined(__GNUC__) && ((__GNUC__ * 100) + __GNUC_MINOR__) >= 409)
-#error "On HP-UX we need GCC 4.9 or higher."
-#endif
-
 #include <stdio.h>
 
 int main(int argc, char* argv[])
@@ -1117,7 +1105,6 @@ int main(int argc, char* argv[])
   return 1
 }
 
-# TODO: These calls to cmake_c_compiler_try_set might be unnecessary if the thread_flags variable is always empty
 if test -n "${CC}"; then
   cmake_c_compiler_try_set "${CC}" ""
 else
@@ -1165,16 +1152,8 @@ echo '
 #error "Compiler is not in a mode aware of C++11."
 #endif
 
-#if defined(_AIX) && defined(__GNUC__) && !defined(_THREAD_SAFE)
-#error "On AIX with GNU we need the -pthread flag."
-#endif
-
 #if defined(__SUNPRO_CC) && __SUNPRO_CC < 0x5140
 #error "SunPro <= 5.13 mode not supported due to bug in move semantics."
-#endif
-
-#if defined(__hpux) && !(defined(__GNUC__) && ((__GNUC__ * 100) + __GNUC_MINOR__) >= 409)
-#error "On HP-UX we need GCC 4.9 or higher."
 #endif
 
 #if __cplusplus > 201103L
@@ -1628,10 +1607,6 @@ if test "x${cmake_ansi_cxx_flags}" != "x"; then
 fi
 
 system_flags=''
-case "${cmake_system}" in
-  # Ensure filesystem access uses 64-bit offsets even on 32-bit hosts.
-  *Linux*) system_flags='-D_FILE_OFFSET_BITS=64 -D_TIME_BITS=64' ;;
-esac
 if test "x${system_flags}" != "x"; then
   cmake_c_flags="${cmake_c_flags} ${system_flags}"
   cmake_cxx_flags="${cmake_cxx_flags} ${system_flags}"
@@ -1668,7 +1643,6 @@ write_source_rule() {
     echo "${obj} : ${src} ${dep}" >> "${cmake_bootstrap_dir}/Makefile"
     echo "${tab}${compiler} ${flags} ${src_flags} -c ${src} -o ${obj}" >> "${cmake_bootstrap_dir}/Makefile"
   fi
-  echo "Flags: ${src_flags}"
 }
 
 cmake_c_flags_String="-DKWSYS_STRING_C"
@@ -1717,14 +1691,6 @@ else
   echo "cmake: ${objs}" > "${cmake_bootstrap_dir}/Makefile"
   echo "${tab}${cmake_cxx_compiler} ${cmake_ld_flags} ${cmake_cxx_flags} ${objs} ${libs} -o cmake" >> "${cmake_bootstrap_dir}/Makefile"
 fi
-
-for v in ${!cmake_cxx_flags_@}; do
-    printf '%s=%s\n' "$v" "${!v}"
-done
-echo "-----"
-for v in ${!cmake_c_flags_@}; do
-    printf '%s=%s\n' "$v" "${!v}"
-done
 
 # WIN_PATH DONE
 for a in ${CMAKE_CXX_SOURCES}; do
@@ -1811,8 +1777,6 @@ rebuild_cache:
 ${tab}cd \"${win_cmake_binary_dir}\" && \"${win_cmake_source_dir}\\bootstrap\" --generator=\"${cmake_bootstrap_generator}\"
 " >> "${cmake_bootstrap_dir}/Makefile"
 fi
-
-
 
 # Write our default settings to Bootstrap${_cmk}/InitialCacheFlags.cmake.
 echo '
