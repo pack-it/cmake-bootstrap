@@ -1196,3 +1196,64 @@ if ("${cmake_bootstrap_generator}" -eq "Ninja") {
         "cmProcessTools"
     )
 }
+
+#-----------------------------------------------------------------------------
+# Set known toolchains on MinGW.
+$cmake_toolchains = @("GNU")
+
+# Toolchain compiler name table.
+$cmake_toolchain_Clang_CC = "clang"
+$cmake_toolchain_Clang_CXX = "clang++"
+$cmake_toolchain_GNU_CC = "gcc"
+$cmake_toolchain_GNU_CXX = "g++"
+$cmake_toolchain_PGI_CC = "pgcc"
+$cmake_toolchain_PGI_CXX = "pgCC"
+$cmake_toolchain_PathScale_CC = "pathcc"
+$cmake_toolchain_PathScale_CXX = "pathCC"
+$cmake_toolchain_XL_CC = "xlc"
+$cmake_toolchain_XL_CXX = "xlC"
+
+function cmake_toolchain_try {
+    param (
+        $tc
+    )
+
+    $TMPFILE = cmake_tmp_file
+    $tc_CC = Get-Variable -Name "cmake_toolchain_${tc}_CC" -ValueOnly
+    'int main() { return 0; }' | Set-Content "${TMPFILE}.c" -Encoding utf8
+    cmake_try_run "$tc_CC" "" "${TMPFILE}.c" | Out-File cmake_bootstrap.log
+    $tc_result_CC="$?"
+    Remove-Item -Force "${TMPFILE}.c" -ErrorAction SilentlyContinue
+    if (-not(${tc_result_CC})) {
+        return 1
+    }
+
+    $tc_CXX = Get-Variable -Name "cmake_toolchain_${tc}_CXX" -ValueOnly
+    'int main() { return 0; }' | Set-Content "${TMPFILE}.cpp" -Encoding utf8
+    cmake_try_run "$tc_CC" "" "${TMPFILE}.cpp" | Out-File cmake_bootstrap.log
+    $tc_result_CXX="$?"
+    Remove-Item -Force "${TMPFILE}.cpp" -ErrorAction SilentlyContinue
+    if (-not(${tc_result_CXX})) {
+        return 1
+    }
+
+    # REMOVED: $cmake_toolchain = "$tc" because doesn't work well in powershell
+}
+
+function cmake_toolchain_detect {
+    $cmake_toolchain = ""
+    foreach ($tc in ${cmake_toolchains}) {
+        "Checking for ${tc} toolchain" | Add-Content cmake_bootstrap.log
+        cmake_toolchain_try "${tc}"
+        Write-Host "Found ${tc} toolchain"
+        $cmake_toolchain = $tc
+        break
+    }
+
+    $cmake_toolchain
+}
+
+if (("${CC}" -eq "") -and ("${CXX}" -eq "")) {
+    $cmake_toolchain = cmake_toolchain_detect
+}
+
