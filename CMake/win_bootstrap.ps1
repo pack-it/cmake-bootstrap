@@ -1089,3 +1089,104 @@ Write-Output "---------------------------------------------"
 # Get CMake version
 cmake_version_display
 
+# Check for in-source build
+$cmake_in_source_build = $false
+if ((Test-Path -Path "${cmake_binary_dir}\Source\cmake.cxx") -and (Test-Path -Path "${cmake_binary_dir}\Source\cmake.h")) {
+    if ($cmake_verbose) {
+        Write-Output "Warning: This is an in-source build"
+    }
+
+    $cmake_in_source_build = $true
+}
+
+# If this is not an in-source build, then Bootstrap stuff should not exist.
+if (-not($cmake_in_source_build)) {
+    # Did somebody bootstrap in the source tree?
+    if (Test-Path -Path "${cmake_source_dir}\Bootstrap${_cmk}") {
+        cmake_error 10 "Found directory '${cmake_source_dir}\Bootstrap${_cmk}'.
+Looks like somebody did bootstrap CMake in the source tree, but now you are
+trying to do bootstrap in the binary tree. Please remove Bootstrap${_cmk}
+directory from the source tree."
+    }
+
+    # Is there a cache in the source tree?
+    foreach ($problematic_file in $CMAKE_PROBLEMATIC_FILES) {
+        if (Test-Path -Path "${cmake_source_dir}\${cmake_problematic_file}") {
+            cmake_error 10 "Found '${cmake_source_dir}\${cmake_problematic_file}'.
+Looks like somebody tried to build CMake in the source tree, but now you are
+trying to do bootstrap in the binary tree. Please remove '${cmake_problematic_file}'
+from the source tree."
+        }
+    }
+}
+
+# Make bootstrap directory if it didn't exist already
+if (-not(Test-Path -Path $cmake_bootstrap_dir)) {
+    New-Item -ItemType Directory -Path "${cmake_bootstrap_dir}"
+}
+
+# Make sure that directory creation worked
+if (-not(Test-Path -Path $cmake_bootstrap_dir)) {
+    cmake_error 3 "Cannot create directory ${cmake_bootstrap_dir} to bootstrap CMake."
+}
+
+# Go into the bootstrap directory for the bootstrap
+Set-Location "${cmake_bootstrap_dir}"
+
+# Create cmsys in bootstrap directory if it didn't exist already
+if (-not(Test-Path -Path "cmsys")) {
+    New-Item -ItemType Directory -Path "cmsys"
+}
+
+# Make sure that directory creation worked
+if (-not(Test-Path -Path "cmsys")) {
+    cmake_error 4 "Cannot create directory ${cmake_bootstrap_dir}/cmsys"
+}
+
+# Delete all the bootstrap files
+Remove-Item -Force "${cmake_bootstrap_dir}\cmake_bootstrap.log" -ErrorAction SilentlyContinue
+Remove-Item -Force "${cmake_bootstrap_dir}\cmConfigure.h${_tmp}" -ErrorAction SilentlyContinue
+Remove-Item -Force "${cmake_bootstrap_dir}\cmVersionConfig.h${_tmp}" -ErrorAction SilentlyContinue
+
+# If building in-source, remove any cmConfigure.h that may
+# have been created by a previous run of the bootstrap cmake.
+if ($cmake_in_source_build) {
+    Remove-Item -Force "${cmake_source_dir}\Source\cmConfigure.h" -ErrorAction SilentlyContinue
+}
+
+# If exist compiler flags, set them
+$cmake_c_flags = ${CFLAGS}
+$cmake_cxx_flags = ${CXXFLAGS}
+$cmake_ld_flags = ${LDFLAGS}
+
+# Add generator-specific files
+if ("${cmake_bootstrap_generator}" -eq "Ninja") {
+    $CMAKE_CXX_SOURCES += @(
+        "cmFortranParserImpl",
+        "cmGlobalNinjaGenerator",
+        "cmLocalNinjaGenerator",
+        "cmNinjaLinkLineComputer",
+        "cmNinjaLinkLineDeviceComputer",
+        "cmNinjaNormalTargetGenerator",
+        "cmNinjaTargetGenerator",
+        "cmNinjaUtilityTargetGenerator"
+    )
+
+    $LexerParser_CXX_SOURCES += @(
+        "cmFortranLexer",
+        "cmFortranParser"
+    )
+} else {
+    $CMAKE_CXX_SOURCES += @(
+        "cmDepends",
+        "cmDependsC",
+        "cmDependsCompiler",
+        "cmGlobalUnixMakefileGenerator3",
+        "cmLocalUnixMakefileGenerator3",
+        "cmMakefileExecutableTargetGenerator",
+        "cmMakefileLibraryTargetGenerator",
+        "cmMakefileTargetGenerator",
+        "cmMakefileUtilityTargetGenerator",
+        "cmProcessTools"
+    )
+}
