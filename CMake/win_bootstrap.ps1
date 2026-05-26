@@ -1000,49 +1000,55 @@ function cmake_generate_file {
 #   echo "$*" >> cmake_bootstrap.log
 # }
 
-# # Return temp file
-# cmake_tmp_file ()
-# {
-#   echo "cmake_bootstrap_$$_test"
-# }
+# Return temp file with random name
+# CHANGE: The name is not based on the current PID
+function cmake_tmp_file {
+    $guid = [guid]::NewGuid().ToString()
+    "cmake_bootstrap_$guid"
+}
 
-# # Run a compiler test. First argument is compiler, second one are compiler
-# # flags, third one is test source file to be compiled
-# cmake_try_run ()
-# {
-#   COMPILER=$1
-#   FLAGS=$2
-#   TESTFILE=$3
-#   if test ! -f "${TESTFILE}"; then
-#     echo "Test file ${TESTFILE} missing. Please verify your CMake source tree."
-#     exit 4
-#   fi
-#   TMPFILE=`cmake_tmp_file`
-#   echo "Try: ${COMPILER}"
-#   echo "Line: ${COMPILER} ${FLAGS} ${TESTFILE} -o ${TMPFILE}"
-#   echo "----------  file   -----------------------"
-#   cat "${TESTFILE}"
-#   echo "------------------------------------------"
-#   ${COMPILER} ${FLAGS} "${TESTFILE}" -o "${TMPFILE}"
-#   RES=$?
-#   if test "${RES}" -ne "0"; then
-#     echo "Test failed to compile"
-#     return 1
-#   fi
-#   if test ! -f "${TMPFILE}" && test ! -f "${TMPFILE}.exe"; then
-#     echo "Test failed to produce executable"
-#     return 2
-#   fi
-#   ./${TMPFILE}
-#   RES=$?
-#   rm -f "${TMPFILE}"
-#   if test "${RES}" -ne "0"; then
-#     echo "Test produced non-zero return code"
-#     return 3
-#   fi
-#   echo "Test succeeded"
-#   return 0
-# }
+# Run a compiler test. First argument is compiler, second one are compiler
+# flags, third one is test source file to be compiled
+function cmake_try_run {
+    param (
+        $COMPILER,
+        $FLAGS,
+        $TESTFILE
+    )
+
+    if (-not(Test-Path "${TESTFILE}")) {
+        Write-Output "Test file ${TESTFILE} missing. Please verify your CMake source tree."
+        exit 4
+    }
+
+    $TMPFILE = cmake_tmp_file
+    Write-Output "Try: ${COMPILER}"
+    Write-Output "Line: ${COMPILER} ${FLAGS} ${TESTFILE} -o ${TMPFILE}"
+    Write-Output "----------  file   -----------------------"
+    Get-Content "${TESTFILE}"
+    Write-Output "------------------------------------------"
+    & $COMPILER @FLAGS "$TESTFILE" -o "$TMPFILE"
+    if (-not($?)) {
+        Write-Output "Test failed to compile"
+        return 1
+    }
+
+    if ((-not(Test-Path "${TMPFILE}")) -and (-not(Test-Path "${TMPFILE}.exe"))) {
+        Write-Output "Test failed to produce executable"
+        return 2
+    }
+
+    & .\${TMPFILE}
+    $RES = $?
+    Remove-Item -Force "${TMPFILE}" -ErrorAction SilentlyContinue
+    if (-not(${RES})) {
+        Write-Output "Test produced non-zero return code"
+        return 3
+    }
+
+    Write-Output "Test succeeded"
+    return 0
+}
 
 # # Run a make test. First argument is the make interpreter.
 # cmake_try_make ()
@@ -1091,7 +1097,7 @@ cmake_version_display
 
 # Check for in-source build
 $cmake_in_source_build = $false
-if ((Test-Path -Path "${cmake_binary_dir}\Source\cmake.cxx") -and (Test-Path -Path "${cmake_binary_dir}\Source\cmake.h")) {
+if ((Test-Path "${cmake_binary_dir}\Source\cmake.cxx") -and (Test-Path "${cmake_binary_dir}\Source\cmake.h")) {
     if ($cmake_verbose) {
         Write-Output "Warning: This is an in-source build"
     }
@@ -1102,7 +1108,7 @@ if ((Test-Path -Path "${cmake_binary_dir}\Source\cmake.cxx") -and (Test-Path -Pa
 # If this is not an in-source build, then Bootstrap stuff should not exist.
 if (-not($cmake_in_source_build)) {
     # Did somebody bootstrap in the source tree?
-    if (Test-Path -Path "${cmake_source_dir}\Bootstrap${_cmk}") {
+    if (Test-Path "${cmake_source_dir}\Bootstrap${_cmk}") {
         cmake_error 10 "Found directory '${cmake_source_dir}\Bootstrap${_cmk}'.
 Looks like somebody did bootstrap CMake in the source tree, but now you are
 trying to do bootstrap in the binary tree. Please remove Bootstrap${_cmk}
@@ -1111,7 +1117,7 @@ directory from the source tree."
 
     # Is there a cache in the source tree?
     foreach ($problematic_file in $CMAKE_PROBLEMATIC_FILES) {
-        if (Test-Path -Path "${cmake_source_dir}\${cmake_problematic_file}") {
+        if (Test-Path "${cmake_source_dir}\${cmake_problematic_file}") {
             cmake_error 10 "Found '${cmake_source_dir}\${cmake_problematic_file}'.
 Looks like somebody tried to build CMake in the source tree, but now you are
 trying to do bootstrap in the binary tree. Please remove '${cmake_problematic_file}'
@@ -1121,12 +1127,12 @@ from the source tree."
 }
 
 # Make bootstrap directory if it didn't exist already
-if (-not(Test-Path -Path $cmake_bootstrap_dir)) {
+if (-not(Test-Path $cmake_bootstrap_dir)) {
     New-Item -ItemType Directory -Path "${cmake_bootstrap_dir}"
 }
 
 # Make sure that directory creation worked
-if (-not(Test-Path -Path $cmake_bootstrap_dir)) {
+if (-not(Test-Path $cmake_bootstrap_dir)) {
     cmake_error 3 "Cannot create directory ${cmake_bootstrap_dir} to bootstrap CMake."
 }
 
@@ -1134,12 +1140,12 @@ if (-not(Test-Path -Path $cmake_bootstrap_dir)) {
 Set-Location "${cmake_bootstrap_dir}"
 
 # Create cmsys in bootstrap directory if it didn't exist already
-if (-not(Test-Path -Path "cmsys")) {
+if (-not(Test-Path "cmsys")) {
     New-Item -ItemType Directory -Path "cmsys"
 }
 
 # Make sure that directory creation worked
-if (-not(Test-Path -Path "cmsys")) {
+if (-not(Test-Path "cmsys")) {
     cmake_error 4 "Cannot create directory ${cmake_bootstrap_dir}/cmsys"
 }
 
