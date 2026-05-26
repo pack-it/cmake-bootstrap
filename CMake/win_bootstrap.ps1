@@ -408,15 +408,15 @@ Configuration:
 Directory and file names:
   --prefix=PREFIX         install files in tree rooted at PREFIX
                           [${cmake_default_prefix}]
-  --bindir=DIR            install binaries in PREFIX/DIR
+  --bindir=DIR            install binaries in PREFIX\DIR
                           [${cmake_bin_dir_default}]
-  --datadir=DIR           install data files in PREFIX/DIR
+  --datadir=DIR           install data files in PREFIX\DIR
                           [${cmake_data_dir_default}]
-  --docdir=DIR            install documentation files in PREFIX/DIR
+  --docdir=DIR            install documentation files in PREFIX\DIR
                           [${cmake_doc_dir_default}]
-  --mandir=DIR            install man pages files in PREFIX/DIR/manN
+  --mandir=DIR            install man pages files in PREFIX\DIR\manN
                           [${cmake_man_dir_default}]
-  --xdgdatadir=DIR        install XDG specific files in PREFIX/DIR
+  --xdgdatadir=DIR        install XDG specific files in PREFIX\DIR
                           [${cmake_xdgdata_dir_default}]
 "
     exit 10
@@ -442,7 +442,8 @@ function cmake_error {
     Write-Output "$Messages"
     Write-Output "---------------------------------------------"
     if (Test-Path "cmake_bootstrap.log") {
-        Write-Output "Log of errors: `pwd`/cmake_bootstrap.log"
+        $pwd = Get-Location
+        Write-Output "Log of errors: ${pwd}\cmake_bootstrap.log"
         Write-Output "---------------------------------------------"
     }
 
@@ -474,16 +475,16 @@ $CMAKE_PROBLEMATIC_FILES = @(
     "CMakeSystem.cmake",
     "CMakeCCompiler.cmake",
     "CMakeCXXCompiler.cmake",
-    "*/CMakeSystem.cmake",
-    "*/CMakeCCompiler.cmake",
-    "*/CMakeCXXCompiler.cmake",
-    "Source/cmConfigure.h",
-    "Source/CTest/Curl/config.h",
-    "Utilities/cmThirdParty.h",
-    "Utilities/cmcurl/lib/curl_config.h",
-    "Utilities/cmlibarchive/config.h",
-    "Utilities/cmliblzma/config.h",
-    "Utilities/cmnghttp2/config.h"
+    "*\CMakeSystem.cmake",
+    "\CMakeCCompiler.cmake",
+    "*\CMakeCXXCompiler.cmake",
+    "Source\cmConfigure.h",
+    "Source\CTest\Curl\config.h",
+    "Utilities\cmThirdParty.h",
+    "Utilities\cmcurl\lib\curl_config.h",
+    "Utilities\cmlibarchive\config.h",
+    "Utilities\cmliblzma\config.h",
+    "Utilities\cmnghttp2\config.h"
 )
 
 $CMAKE_UNUSED_SOURCES = @(
@@ -818,57 +819,57 @@ $KWSYS_FILES = @(
 )
 
 $LIBRHASH_C_SOURCES = @(
-  "librhash/algorithms.c",
-  "librhash/byte_order.c",
-  "librhash/hex.c",
-  "librhash/md5.c",
-  "librhash/rhash.c",
-  "librhash/sha1.c",
-  "librhash/sha256.c",
-  "librhash/sha3.c",
-  "librhash/sha512.c",
-  "librhash/util.c"
+  "librhash\algorithms.c",
+  "librhash\byte_order.c",
+  "librhash\hex.c",
+  "librhash\md5.c",
+  "librhash\rhash.c",
+  "librhash\sha1.c",
+  "librhash\sha256.c",
+  "librhash\sha3.c",
+  "librhash\sha512.c",
+  "librhash\util.c"
 )
 
 $JSONCPP_CXX_SOURCES = @(
-  "src/lib_json/json_reader.cpp",
-  "src/lib_json/json_value.cpp",
-  "src/lib_json/json_writer.cpp"
+  "src\lib_json\json_reader.cpp",
+  "src\lib_json\json_value.cpp",
+  "src\lib_json\json_writer.cpp"
 )
 
 $LIBUV_C_SOURCES = @(
-    "src/fs-poll.c",
-    "src/idna.c",
-    "src/inet.c",
-    "src/threadpool.c",
-    "src/strscpy.c",
-    "src/strtok.c",
-    "src/timer.c",
-    "src/uv-common.c",
-    "src/win/async.c",
-    "src/win/core.c",
-    "src/win/detect-wakeup.c",
-    "src/win/dl.c",
-    "src/win/error.c",
-    "src/win/fs-event.c",
-    "src/win/fs.c",
-    "src/win/getaddrinfo.c",
-    "src/win/getnameinfo.c",
-    "src/win/handle.c",
-    "src/win/loop-watcher.c",
-    "src/win/pipe.c",
-    "src/win/poll.c",
-    "src/win/process-stdio.c",
-    "src/win/process.c",
-    "src/win/signal.c",
-    "src/win/stream.c",
-    "src/win/tcp.c",
-    "src/win/thread.c",
-    "src/win/tty.c",
-    "src/win/udp.c",
-    "src/win/util.c",
-    "src/win/winapi.c",
-    "src/win/winsock.c"
+    "src\fs-poll.c",
+    "src\idna.c",
+    "src\inet.c",
+    "src\threadpool.c",
+    "src\strscpy.c",
+    "src\strtok.c",
+    "src\timer.c",
+    "src\uv-common.c",
+    "src\win\async.c",
+    "src\win\core.c",
+    "src\win\detect-wakeup.c",
+    "src\win\dl.c",
+    "src\win\error.c",
+    "src\win\fs-event.c",
+    "src\win\fs.c",
+    "src\win\getaddrinfo.c",
+    "src\win\getnameinfo.c",
+    "src\win\handle.c",
+    "src\win\loop-watcher.c",
+    "src\win\pipe.c",
+    "src\win\poll.c",
+    "src\win\process-stdio.c",
+    "src\win\process.c",
+    "src\win\signal.c",
+    "src\win\stream.c",
+    "src\win\tcp.c",
+    "src\win\thread.c",
+    "src\win\tty.c",
+    "src\win\udp.c",
+    "src\win\util.c",
+    "src\win\winapi.c",
+    "src\win\winsock.c"
 )
 
 # Update OUTFILE with TMPFILE if the files are different.
@@ -880,9 +881,9 @@ function cmake_generate_file_tmp {
     )
 
     if ((Test-Path $outFile) -and (-not (Compare-Object (Get-Content $tmpFile) (Get-Content $outFile)))) {
-        Remove-Item $tmpFile -Force
+        Remove-Item -Force $tmpFile 
     } else {
-        Move-Item $tmpFile $outFile -Force
+        Move-Item -Force $tmpFile $outFile
     }
 }
 
@@ -898,19 +899,35 @@ function cmake_generate_file {
 }
 
 # Compile flag extraction function.
-# cmake_extract_standard_flags()
-# {
-#   id="${1:-*}"
-#   lang="${2}"
-#   ver="${3}"
-#   sed -n "s/ *set *( *CMAKE_${lang}${ver}_EXTENSION_COMPILE_OPTION *\"\{0,1\}\([^\")]*\).*/\1/p" \
-#     "${cmake_source_dir}/Modules/Compiler/"${id}-${lang}.cmake \
-#     2>/dev/null | tr ';' ' '
-#   # Clang's CXX compiler flags are in the common module.
-#   sed -n "s/ *set *( *CMAKE_\\\${lang}${ver}_EXTENSION_COMPILE_OPTION *\"\{0,1\}\([^\")]*\).*/\1/p" \
-#     "${cmake_source_dir}/Modules/Compiler/Clang.cmake" \
-#     2>/dev/null | tr ';' ' '
-# }
+function cmake_extract_standard_flags {
+    param (
+        $id,
+        $lang,
+        $ver
+    )
+
+    if (-not $id) {
+        $id = "*"
+    }
+
+    $pattern = "CMAKE_${lang}${ver}_EXTENSION_COMPILE_OPTION\s+`"?([^`")]+)"
+
+    $result = ""
+    $result += (Get-Content "$cmake_source_dir\Modules\Compiler\$id-$lang.cmake" -ErrorAction SilentlyContinue) |
+        Select-String $pattern |
+        ForEach-Object { $_.Matches[0].Groups[1].Value } |
+        ForEach-Object { $_ -replace ';', ' ' }
+
+    # Clang's CXX compiler flags are in the common module.
+    $pattern = "CMAKE_\$\{lang\}${ver}_EXTENSION_COMPILE_OPTION\s+`"?([^`")]+)"
+
+    $result += (Get-Content "$cmake_source_dir\Modules\Compiler\Clang.cmake" -ErrorAction SilentlyContinue) |
+        Select-String $pattern |
+        ForEach-Object { $_.Matches[0].Groups[1].Value } |
+        ForEach-Object { $_ -replace ';', ' ' }
+
+    $result
+}
 
 # Replace KWSYS_NAMESPACE with cmsys
 # cmake_replace_string ()
@@ -1027,7 +1044,7 @@ function cmake_try_run {
     Write-Output "----------  file   -----------------------"
     Get-Content "${TESTFILE}"
     Write-Output "------------------------------------------"
-    & $COMPILER @FLAGS "$TESTFILE" -o "$TMPFILE"
+    & $COMPILER $FLAGS $TESTFILE -o $TMPFILE
     if (-not($?)) {
         Write-Output "Test failed to compile"
         return 1
@@ -1117,10 +1134,10 @@ directory from the source tree."
 
     # Is there a cache in the source tree?
     foreach ($problematic_file in $CMAKE_PROBLEMATIC_FILES) {
-        if (Test-Path "${cmake_source_dir}\${cmake_problematic_file}") {
-            cmake_error 10 "Found '${cmake_source_dir}\${cmake_problematic_file}'.
+        if (Test-Path "${cmake_source_dir}\${problematic_file}") {
+            cmake_error 10 "Found '${cmake_source_dir}\${problematic_file}'.
 Looks like somebody tried to build CMake in the source tree, but now you are
-trying to do bootstrap in the binary tree. Please remove '${cmake_problematic_file}'
+trying to do bootstrap in the binary tree. Please remove '${problematic_file}'
 from the source tree."
         }
     }
@@ -1146,7 +1163,7 @@ if (-not(Test-Path "cmsys")) {
 
 # Make sure that directory creation worked
 if (-not(Test-Path "cmsys")) {
-    cmake_error 4 "Cannot create directory ${cmake_bootstrap_dir}/cmsys"
+    cmake_error 4 "Cannot create directory ${cmake_bootstrap_dir}\cmsys"
 }
 
 # Delete all the bootstrap files
@@ -1257,3 +1274,74 @@ if (("${CC}" -eq "") -and ("${CXX}" -eq "")) {
     $cmake_toolchain = cmake_toolchain_detect
 }
 
+#-----------------------------------------------------------------------------
+# Test C compiler
+$cmake_c_compiler = ""
+
+# If CC is set, use that for compiler, otherwise use list of known compilers
+if ("${cmake_toolchain}" -ne "") {
+    $varname = "cmake_toolchain_${cmake_toolchain}_CC"
+    $cmake_c_compilers = (Get-Variable $varname).Value
+} else {
+    $cmake_c_compilers = "${CMAKE_KNOWN_C_COMPILERS}"
+}
+
+function cmake_c_compiler_try_set {
+    param (
+        $test_compiler,
+        $test_thread_flags
+    )
+
+    # Check if C compiler works
+    $TMPFILE = cmake_tmp_file
+    @"
+#ifdef __cplusplus
+# error "The CMAKE_C_COMPILER is set to a C++ compiler"
+#endif
+
+#include <stdio.h>
+
+int main(int argc, char* argv[])
+{
+  printf("%d%c", (argv != 0), (char)0x0a);
+  return argc - 1;
+}
+"@ | Set-Content "${TMPFILE}.c" -Encoding utf8
+    foreach ($std in @(11, 99, 90)) {
+        $std_flags = cmake_extract_standard_flags "${cmake_toolchain}" "C" "${std}"
+        $std_flags = $std_flags -split '\s+'
+        $std_flags = ,"" + $std_flags
+        foreach ($std_flag in $std_flags) {
+            "Checking whether '${test_compiler} ${cmake_c_flags} ${cmake_ld_flags} ${std_flag}' works." | Add-Content cmake_bootstrap.log
+            cmake_try_run $test_compiler @($cmake_c_flags, $cmake_ld_flags, $std_flag) "${TMPFILE}.c" 2>&1 | Tee-Object -FilePath cmake_bootstrap.log
+            if ($LASTEXITCODE -eq 0) {
+                $script:cmake_c_compiler="${test_compiler}"
+                $script:cmake_c_flags="${cmake_c_flags} ${std_flag}"
+                Remove-Item -Force "${TMPFILE}.c" -ErrorAction SilentlyContinue
+                return 0
+            }
+        }
+    }
+
+    Remove-Item -Force "${TMPFILE}.c" -ErrorAction SilentlyContinue
+    return 1
+}
+
+if ("${CC}" -ne "") {
+    cmake_c_compiler_try_set "${CC}"
+} else {
+    foreach ($compiler in ${cmake_c_compilers}) {
+        if (cmake_c_compiler_try_set "${compiler}") {
+            break
+        }
+    }
+}
+
+if ($cmake_c_compiler -eq "") {
+  cmake_error 6 "Cannot find appropriate C compiler on this system.
+Please specify one using environment variable CC.
+See cmake_bootstrap.log for compilers attempted.
+"
+}
+
+Write-Output "C compiler on this system is: ${cmake_c_compiler} ${cmake_c_flags}"
