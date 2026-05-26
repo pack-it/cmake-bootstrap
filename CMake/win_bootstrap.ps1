@@ -1,5 +1,257 @@
 # Distributed under the OSI-approved BSD 3-Clause License.  See accompanying
 # file LICENSE.rst or https://cmake.org/licensing for details.
+param(
+    [Alias("prefix")]
+    [string]$cmake_prefix_dir,
+
+    [Alias("parallel")]
+    [string]$cmake_parallel_make,
+
+    [Alias("generator")]
+    [string]$cmake_bootstrap_generator,
+
+    [Alias("bindir")]
+    [string]$cmake_bin_dir,
+
+    [Alias("datadir")]
+    [string]$cmake_data_dir,
+
+    [Alias("docdir")]
+    [string]$cmake_doc_dir,
+
+    [Alias("mandir")]
+    [string]$cmake_man_dir,
+
+    [Alias("xdgdatadir")]
+    [string]$cmake_xdgdata_dir,
+
+    [Alias("init")]
+    [string]$cmake_init_file,
+
+    [Alias("system-libs")]
+    [switch]$system_libs,
+
+    [Alias("no-system-libs")]
+    [switch]$no_system_libs,
+
+    # System
+    [Alias("system-bzip2")]
+    [switch]$system_bzip2,
+
+    [Alias("system-cppdap")]
+    [switch]$system_cppdap,
+
+    [Alias("system-curl")]
+    [switch]$system_curl,
+
+    [Alias("system-expat")]
+    [switch]$system_expat,
+
+    [Alias("system-jsoncpp")]
+    [switch]$system_jsoncpp,
+
+    [Alias("system-libarchive")]
+    [switch]$system_libarchive,
+
+    [Alias("system-librhash")]
+    [switch]$system_librhash,
+
+    [Alias("system-zlib")]
+    [switch]$system_zlib,
+
+    [Alias("system-liblzma")]
+    [switch]$system_liblzma,
+
+    [Alias("system-nghttp2")]
+    [switch]$system_nghttp2,
+
+    [Alias("system-zstd")]
+    [switch]$system_zstd,
+
+    [Alias("system-libuv")]
+    [switch]$system_libuv,
+
+    # No system
+    [Alias("no-system-bzip2")]
+    [switch]$no_system_bzip2,
+
+    [Alias("no-system-cppdap")]
+    [switch]$no_system_cppdap,
+
+    [Alias("no-system-curl")]
+    [switch]$no_system_curl,
+
+    [Alias("no-system-expat")]
+    [switch]$no_system_expat,
+
+    [Alias("no-system-jsoncpp")]
+    [switch]$no_system_jsoncpp,
+
+    [Alias("no-system-libarchive")]
+    [switch]$no_system_libarchive,
+
+    [Alias("no-system-librhash")]
+    [switch]$no_system_librhash,
+
+    [Alias("no-system-zlib")]
+    [switch]$no_system_zlib,
+
+    [Alias("no-system-liblzma")]
+    [switch]$no_system_liblzma,
+
+    [Alias("no-system-nghttp2")]
+    [switch]$no_system_nghttp2,
+
+    [Alias("no-system-zstd")]
+    [switch]$no_system_zstd,
+
+    [Alias("no-system-libuv")]
+    [switch]$no_system_libuv,
+
+    # Other
+    [Alias("bootstrap-system-libuv")]
+    [switch]$bootstrap_system_libuv,
+
+    [Alias("bootstrap-system-jsoncpp")]
+    [switch]$bootstrap_system_jsoncpp,
+
+    [Alias("bootstrap-system-librhash")]
+    [switch]$bootstrap_system_librhash,
+
+    [Alias("qt-gui")]
+    [switch]$cmake_bootstrap_qt_gui,
+
+    [Alias("no-qt-gui")]
+    [switch]$no_qt_gui,
+
+    [Alias("qt-qmake")]
+    [string]$cmake_bootstrap_qt_qmake,
+
+    [Alias("debugger")]
+    [switch]$cmake_bootstrap_debugger,
+
+    [Alias("no-debugger")]
+    [switch]$no_debugger,
+
+    [Alias("sphinx-info")]
+    [switch]$cmake_sphinx_info,
+
+    [Alias("sphinx-man")]
+    [switch]$cmake_sphinx_man,
+
+    [Alias("sphinx-html")]
+    [switch]$cmake_sphinx_html,
+
+    [Alias("sphinx-qthelp")]
+    [switch]$cmake_sphinx_qthelp,
+
+    [Alias("sphinx-latexpdf")]
+    [switch]$cmake_sphinx_latexpdf,
+
+    [Alias("sphinx-build")]
+    [string]$cmake_sphinx_build,
+
+    [Alias("sphinx-flags")]
+    [string]$cmake_sphinx_flags,
+
+    [Alias("help")]
+    [switch]$cmake_help,
+
+    [Alias("version")]
+    [switch]$show_version,
+
+    [Alias("verbose")]
+    [switch]$cmake_verbose,
+
+    [Alias("enable-ccache")]
+    [switch]$cmake_ccache_enabled,
+
+    [string]$CC,
+    [string]$CXX,
+    [string]$CFLAGS,
+    [string]$CXXFLAGS,
+    [string]$LDFLAGS
+)
+
+# Set false booleans
+if ($no_qt_gui) {
+    $cmake_bootstrap_qt_gui = $false
+}
+
+if ($no_debugger) {
+    $cmake_bootstrap_debugger = $false
+}
+
+# Set CMake bootstrap system libs
+$cmake_bootstrap_system_libs = @()
+if ($system_libs) {
+    $cmake_bootstrap_system_libs += "-DCMAKE_USE_SYSTEM_LIBRARIES=1"
+}
+
+if ($no_system_libs) {
+    $cmake_bootstrap_system_libs += "-DCMAKE_USE_SYSTEM_LIBRARIES=0"
+}
+
+# Do mapping from system flags and add them to the cmake_bootstrap_system_libs
+$system_map = @{
+    system_bzip2      = "bzip2"
+    system_cppdap     = "cppdap"
+    system_curl       = "curl"
+    system_expat      = "expat"
+    system_jsoncpp    = "jsoncpp"
+    system_libarchive = "libarchive"
+    system_librhash   = "librhash"
+    system_zlib       = "zlib"
+    system_liblzma    = "liblzma"
+    system_nghttp2    = "nghttp2"
+    system_zstd       = "zstd"
+    system_libuv      = "libuv"
+}
+
+$no_system_map = @{
+    no_system_bzip2      = "bzip2"
+    no_system_cppdap     = "cppdap"
+    no_system_curl       = "curl"
+    no_system_expat      = "expat"
+    no_system_jsoncpp    = "jsoncpp"
+    no_system_libarchive = "libarchive"
+    no_system_librhash   = "librhash"
+    no_system_zlib       = "zlib"
+    no_system_liblzma    = "liblzma"
+    no_system_nghttp2    = "nghttp2"
+    no_system_zstd       = "zstd"
+    no_system_libuv      = "libuv"
+}
+
+foreach ($key in $system_map.Keys) {
+    if (Get-Variable $key -ValueOnly -ErrorAction SilentlyContinue) {
+        $cmake_bootstrap_system_libs += "-DCMAKE_USE_SYSTEM_LIBRARY_$($system_map[$key].ToUpper())=1"
+    }
+}
+
+foreach ($key in $no_system_map.Keys) {
+    if (Get-Variable $key -ValueOnly -ErrorAction SilentlyContinue) {
+        $cmake_bootstrap_system_libs += "-DCMAKE_USE_SYSTEM_LIBRARY_$($no_system_map[$key].ToUpper())=0"
+    }
+}
+
+# Choose the default install prefix.
+if (-not [string]::IsNullOrEmpty($PROGRAMFILES)) {
+    $cmake_default_prefix = "${PROGRAMFILES}\CMake"
+} elseif (-not [string]::IsNullOrEmpty($ProgramFiles)) {
+    $cmake_default_prefix = "${ProgramFiles}\CMake"`
+} elseif (-not [string]::IsNullOrEmpty($SYSTEMDRIVE)) {
+    $cmake_default_prefix = "${SYSTEMDRIVE}\Program Files\CMake"
+} elseif (-not [string]::IsNullOrEmpty($SystemDrive)) {
+    $cmake_default_prefix = "${SystemDrive}\Program Files\CMake"
+} else {
+    $cmake_default_prefix="C:\Program Files\CMake"
+}
+
+# Set the cmake_prefix_dir to the default, if not yet set
+if ($null -eq $cmake_prefix_dir) {
+    $cmake_prefix_dir = "${cmake_default_prefix}"
+}
 
 function die {
     param(
@@ -57,7 +309,7 @@ function cmake_install_dest_default {
     ).Line -replace $pattern,'$1' -replace "\$\{CMake_VERSION_MAJOR\}", "${cmake_version_major}" -replace "\$\{CMake_VERSION_MINOR\}", "${cmake_version_minor}" -replace "\$\{CMake_VERSION_PATCH\}", "${cmake_version_patch}"
 }
 
-# NOTE upper method removed, internal methods available
+# REMOVED upper method, internal methods available
 
 # Detect system and directory information.
 # CHANGE: uname was used here before, this variable is not really used though
@@ -78,28 +330,12 @@ if (-not [string]::IsNullOrEmpty($cmake_version_rc)) {
 # CMake copyright
 $cmake_copyright = (Select-String -Path "${cmake_source_dir}\LICENSE.rst" -Pattern "^Copyright .* Kitware").Line -replace "`Contributors.*`_","Contributors"
 
+# REMOVED: Some of the variables here are removed, because not needed for flag parsing
 $cmake_bin_dir_keyword="OTHER"
 $cmake_data_dir_keyword="OTHER"
 $cmake_doc_dir_keyword="OTHER"
 $cmake_man_dir_keyword="OTHER"
 $cmake_xdgdata_dir_keyword="OTHER"
-$cmake_bin_dir=""
-$cmake_data_dir=""
-$cmake_doc_dir=""
-$cmake_man_dir=""
-$cmake_xdgdata_dir=""
-$cmake_init_file=""
-$cmake_bootstrap_system_libs=""
-$cmake_bootstrap_qt_gui=""
-$cmake_bootstrap_qt_qmake=""
-$cmake_bootstrap_debugger=""
-$cmake_sphinx_info=""
-$cmake_sphinx_man=""
-$cmake_sphinx_html=""
-$cmake_sphinx_qthelp=""
-$cmake_sphinx_latexpdf=""
-$cmake_sphinx_build=""
-$cmake_sphinx_flags=""
 
 # OBSOLETE: Determine whether this is a MinGW environment.
 
@@ -112,28 +348,12 @@ $cmake_bootstrap_generator="MSYS Makefiles"
 # CHECK .tmp for command line/windows
 $_tmp=".tmp"
 $_cmk=".cmk"
-# NOTE _diff removed, because internal methods available
+# REMOVED _diff, because internal methods available
 
 # Construct bootstrap directory name.
 $cmake_bootstrap_dir="${cmake_binary_dir}\Bootstrap${_cmk}"
 
-# Helper function to fix windows paths.
-# cmake_fix_slashes() {
-#     cmd //c echo "$(echo "$1" | sed 's/\\/\//g')" | sed 's/^"//;s/" *$//'
-# }
-
-# Choose the default install prefix.
-if (-not [string]::IsNullOrEmpty($PROGRAMFILES)) {
-    $cmake_default_prefix = "${PROGRAMFILES}\CMake"
-} elseif (-not [string]::IsNullOrEmpty($ProgramFiles)) {
-    $cmake_default_prefix = "${ProgramFiles}\CMake"`
-} elseif (-not [string]::IsNullOrEmpty($SYSTEMDRIVE)) {
-    $cmake_default_prefix = "${SYSTEMDRIVE}\Program Files\CMake"
-} elseif (-not [string]::IsNullOrEmpty($SystemDrive)) {
-    $cmake_default_prefix = "${SystemDrive}\Program Files\CMake"
-} else {
-    $cmake_default_prefix="C:\Program Files\CMake"
-}
+# REMOVED: Helper function to fix windows paths.
 
 # Lookup default install destinations.
 $cmake_bin_dir_default = cmake_install_dest_default BIN ${cmake_bin_dir_keyword}
@@ -630,9 +850,18 @@ Directory and file names:
     exit 10
 }
 
+if ($cmake_help) {
+    cmake_usage
+}
+
 # Display CMake bootstrap usage
 function cmake_version_display {
     Write-Output "CMake ${cmake_version}, ${cmake_copyright}"
+}
+
+if ($show_version) {
+    cmake_version_display
+    exit 2
 }
 
 # Display CMake bootstrap error, display the log file and exit
@@ -682,4 +911,164 @@ function cmake_generate_file {
     Write-Output "$CONTENT" > "$OUTFILE.tmp"
     cmake_generate_file_tmp "$OUTFILE" "$OUTFILE.tmp"
 }
+
+# Replace KWSYS_NAMESPACE with cmsys
+# cmake_replace_string ()
+# {
+#   INFILE="$1"
+#   OUTFILE="$2"
+#   SEARCHFOR="$3"
+#   REPLACEWITH="$4"
+#   if test -f "${INFILE}"; then
+#     sed "s/\@${SEARCHFOR}\@/${REPLACEWITH}/g" "${INFILE}" > "${OUTFILE}${_tmp}"
+#     if test -f "${OUTFILE}${_tmp}"; then
+#       if "${_diff}" "${OUTFILE}" "${OUTFILE}${_tmp}" > /dev/null 2> /dev/null ; then
+#         #echo "Files are the same"
+#         rm -f "${OUTFILE}${_tmp}"
+#       else
+#         mv -f "${OUTFILE}${_tmp}" "${OUTFILE}"
+#       fi
+#     fi
+#   else
+#     cmake_error 1 "Cannot find file ${INFILE}"
+#   fi
+# }
+
+# cmake_kwsys_config_replace_string ()
+# {
+#   INFILE="$1"
+#   OUTFILE="$2"
+#   shift 2
+#   APPEND="$*"
+#   if test -f "${INFILE}"; then
+#     echo "${APPEND}" > "${OUTFILE}${_tmp}"
+#     sed "/./ {s/\@KWSYS_NAMESPACE\@/cmsys/g;
+#               s/@KWSYS_BUILD_SHARED@/${KWSYS_BUILD_SHARED}/g;
+#               s/@KWSYS_LFS_AVAILABLE@/${KWSYS_LFS_AVAILABLE}/g;
+#               s/@KWSYS_LFS_REQUESTED@/${KWSYS_LFS_REQUESTED}/g;
+#               s/@KWSYS_NAME_IS_KWSYS@/${KWSYS_NAME_IS_KWSYS}/g;
+#               s/@KWSYS_CXX_HAS_EXT_STDIO_FILEBUF_H@/${KWSYS_CXX_HAS_EXT_STDIO_FILEBUF_H}/g;
+#              }" "${INFILE}" >> "${OUTFILE}${_tmp}"
+#     if test -f "${OUTFILE}${_tmp}"; then
+#       if "${_diff}" "${OUTFILE}" "${OUTFILE}${_tmp}" > /dev/null 2> /dev/null ; then
+#         #echo "Files are the same"
+#         rm -f "${OUTFILE}${_tmp}"
+#       else
+#         mv -f "${OUTFILE}${_tmp}" "${OUTFILE}"
+#       fi
+#     fi
+#   else
+#     cmake_error 2 "Cannot find file ${INFILE}"
+#   fi
+# }
+
+# # Write string into a file
+# cmake_report ()
+# {
+#   FILE=$1
+#   shift
+#   echo "$*" >> ${FILE}
+# }
+
+# # Escape spaces in strings for artifacts
+# cmake_escape_artifact ()
+# {
+#   if test "${cmake_bootstrap_generator}" = "Ninja"; then
+#     echo $1 | sed "s/ /$ /g"
+#   else
+#     echo $1 | sed "s/ /\\\\ /g"
+#   fi
+# }
+
+# # Escape spaces in strings for shell
+# cmake_escape_shell ()
+# {
+#   echo $1 | sed "s/ /\\\\ /g"
+# }
+
+# # Encode object file names.
+# cmake_obj ()
+# {
+#   echo $1 | sed 's/\//-/g' | sed 's/$/\.o/'
+# }
+
+# REMOVED: Strip prefix from argument
+
+# # Write message to the log
+# cmake_log ()
+# {
+#   echo "$*" >> cmake_bootstrap.log
+# }
+
+# # Return temp file
+# cmake_tmp_file ()
+# {
+#   echo "cmake_bootstrap_$$_test"
+# }
+
+# # Run a compiler test. First argument is compiler, second one are compiler
+# # flags, third one is test source file to be compiled
+# cmake_try_run ()
+# {
+#   COMPILER=$1
+#   FLAGS=$2
+#   TESTFILE=$3
+#   if test ! -f "${TESTFILE}"; then
+#     echo "Test file ${TESTFILE} missing. Please verify your CMake source tree."
+#     exit 4
+#   fi
+#   TMPFILE=`cmake_tmp_file`
+#   echo "Try: ${COMPILER}"
+#   echo "Line: ${COMPILER} ${FLAGS} ${TESTFILE} -o ${TMPFILE}"
+#   echo "----------  file   -----------------------"
+#   cat "${TESTFILE}"
+#   echo "------------------------------------------"
+#   ${COMPILER} ${FLAGS} "${TESTFILE}" -o "${TMPFILE}"
+#   RES=$?
+#   if test "${RES}" -ne "0"; then
+#     echo "Test failed to compile"
+#     return 1
+#   fi
+#   if test ! -f "${TMPFILE}" && test ! -f "${TMPFILE}.exe"; then
+#     echo "Test failed to produce executable"
+#     return 2
+#   fi
+#   ./${TMPFILE}
+#   RES=$?
+#   rm -f "${TMPFILE}"
+#   if test "${RES}" -ne "0"; then
+#     echo "Test produced non-zero return code"
+#     return 3
+#   fi
+#   echo "Test succeeded"
+#   return 0
+# }
+
+# # Run a make test. First argument is the make interpreter.
+# cmake_try_make ()
+# {
+#   MAKE_PROC="$1"
+#   MAKE_FLAGS="$2"
+#   echo "Try: ${MAKE_PROC}"
+#   "${MAKE_PROC}" ${MAKE_FLAGS}
+#   RES=$?
+#   if test "${RES}" -ne "0"; then
+#     echo "${MAKE_PROC} does not work"
+#     return 1
+#   fi
+#   if test ! -f "test" && test ! -f "test.exe"; then
+#     echo "${COMPILER} does not produce output"
+#     return 2
+#   fi
+#   ./test
+#   RES=$?
+#   rm -f "test"
+#   if test "${RES}" -ne "0"; then
+#     echo "${MAKE_PROC} produces strange executable"
+#     return 3
+#   fi
+#   echo "${MAKE_PROC} works"
+#   return 0
+# }
+
 

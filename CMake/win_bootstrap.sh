@@ -1229,7 +1229,6 @@ int main()
   return 1
 }
 
-# TODO: These calls to cmake_cxx_compiler_try_set might be unnecessary if the thread_flags variable is always empty
 if test -n "${CXX}"; then
   cmake_cxx_compiler_try_set "${CXX}" ""
 else
@@ -1549,12 +1548,9 @@ if test "x${bootstrap_system_jsoncpp}" = "x"; then
   done
 fi
 
-libs=""
-
 # WIN_PATH DONE
-uv_c_flags=""
-uv_c_flags="${uv_c_flags} -DWIN32_LEAN_AND_MEAN -D_WIN32_WINNT=0x0600"
-libs="${libs} -ladvapi32 -ldbghelp -liphlpapi -lole32 -loleaut32 -lpsapi -lshell32 -luser32 -luserenv -luuid -lws2_32"
+uv_c_flags="-DWIN32_LEAN_AND_MEAN -D_WIN32_WINNT=0x0600"
+libs="-ladvapi32 -ldbghelp -liphlpapi -lole32 -loleaut32 -lpsapi -lshell32 -luser32 -luserenv -luuid -lws2_32"
 if test "x${bootstrap_system_libuv}" = "x"; then
   uv_c_flags="${uv_c_flags} `cmake_escape_shell "-I${win_cmake_source_dir}\\Utilities\\cmlibuv\\include"`"
   uv_c_flags="${uv_c_flags} `cmake_escape_shell "-I${win_cmake_source_dir}\\Utilities\\cmlibuv\\src\\win"`"
