@@ -900,7 +900,7 @@ function cmake_generate_file {
         $CONTENT
     )
 
-    Write-Output "$CONTENT" > "$OUTFILE.tmp"
+    "$CONTENT" | Set-Content "$OUTFILE.tmp" -Encoding ascii 
     cmake_generate_file_tmp "$OUTFILE" "$OUTFILE.tmp"
 }
 
@@ -973,7 +973,7 @@ function cmake_kwsys_config_replace_string {
     )
 
     if (Test-Path "${INFILE}") {
-        "${APPEND}" | Set-Content "${OUTFILE}${_tmp}" -Encoding utf8 
+        "${APPEND}" | Set-Content "${OUTFILE}${_tmp}" -Encoding ascii 
         (Get-Content $INFILE) | ForEach-Object {
             $line = $_
             $line = $line -replace '@KWSYS_NAMESPACE@', 'cmsys'
@@ -983,7 +983,7 @@ function cmake_kwsys_config_replace_string {
             $line = $line -replace '@KWSYS_NAME_IS_KWSYS@', $KWSYS_NAME_IS_KWSYS
             $line = $line -replace '@KWSYS_CXX_HAS_EXT_STDIO_FILEBUF_H@', $KWSYS_CXX_HAS_EXT_STDIO_FILEBUF_H
             $line
-        } | Add-Content "${OUTFILE}${_tmp}" -Encoding utf8
+        } | Add-Content "${OUTFILE}${_tmp}" -Encoding ascii
         if (Test-Path "${OUTFILE}${_tmp}") {
             if (((Test-Path "${OUTFILE}") -and (Test-Path "${OUTFILE}${_tmp}")) -and -not (Compare-Object (Get-Content "${OUTFILE}") (Get-Content "${OUTFILE}${_tmp}"))) {
                 Remove-Item -Force "${OUTFILE}${_tmp}" -ErrorAction SilentlyContinue
@@ -1008,30 +1008,38 @@ function cmake_report {
         $Messages
     )
 
-    $Messages | Out-File -FilePath $FILE -Append
+    $Messages | Out-File -FilePath $FILE -Append -Encoding ascii
 }
 
-# # Escape spaces in strings for artifacts
-# cmake_escape_artifact ()
-# {
-#   if test "${cmake_bootstrap_generator}" = "Ninja"; then
-#     echo $1 | sed "s/ /$ /g"
-#   else
-#     echo $1 | sed "s/ /\\\\ /g"
-#   fi
-# }
+# Escape spaces in strings for artifacts
+function cmake_escape_artifact {
+    param (
+        $STRING
+    )
+    
+    if ("${cmake_bootstrap_generator}" -eq "Ninja") {
+        $STRING -replace ' ', '$ '
+    }
+    else {
+        $STRING -replace ' ', '\ '
+    }
+}
 
-# # Escape spaces in strings for shell
+# TODO: REMOVE
+# Escape spaces in strings for shell
 # cmake_escape_shell ()
 # {
 #   echo $1 | sed "s/ /\\\\ /g"
 # }
 
 # # Encode object file names.
-# cmake_obj ()
-# {
-#   echo $1 | sed 's/\//-/g' | sed 's/$/\.o/'
-# }
+function cmake_obj {
+    param (
+        $in_obj
+    )
+    
+    ($in_obj -replace '/', '-') + '.o'
+}
 
 # REMOVED: Strip prefix from argument
 
@@ -1282,7 +1290,7 @@ function cmake_toolchain_try {
 
     $TMPFILE = cmake_tmp_file
     $tc_CC = Get-Variable -Name "cmake_toolchain_${tc}_CC" -ValueOnly
-    'int main() { return 0; }' | Set-Content "${TMPFILE}.c" -Encoding utf8
+    'int main() { return 0; }' | Set-Content "${TMPFILE}.c" -Encoding ascii
     cmake_try_run "$tc_CC" "" "${TMPFILE}.c" | Out-File cmake_bootstrap.log
     $tc_result_CC = "$?"
     Remove-Item -Force "${TMPFILE}.c" -ErrorAction SilentlyContinue
@@ -1291,7 +1299,7 @@ function cmake_toolchain_try {
     }
 
     $tc_CXX = Get-Variable -Name "cmake_toolchain_${tc}_CXX" -ValueOnly
-    'int main() { return 0; }' | Set-Content "${TMPFILE}.cpp" -Encoding utf8
+    'int main() { return 0; }' | Set-Content "${TMPFILE}.cpp" -Encoding ascii
     cmake_try_run "$tc_CC" "" "${TMPFILE}.cpp" | Out-File cmake_bootstrap.log
     $tc_result_CXX = "$?"
     Remove-Item -Force "${TMPFILE}.cpp" -ErrorAction SilentlyContinue
@@ -1352,7 +1360,7 @@ int main(int argc, char* argv[])
   printf("%d%c", (argv != 0), (char)0x0a);
   return argc - 1;
 }
-"@ | Set-Content "${TMPFILE}.c" -Encoding utf8
+"@ | Set-Content "${TMPFILE}.c" -Encoding ascii
     foreach ($std in @(11, 99, 90)) {
         $std_flags = cmake_extract_standard_flags "${cmake_toolchain}" "C" "${std}"
         $std_flags = $std_flags -split '\s+'
@@ -1484,7 +1492,7 @@ int main()
   std::cout << c->Get() << check_cxx14() << check_cxx17() << std::endl;
   return 0;
 }
-"@ | Set-Content "${TMPFILE}.cxx" -Encoding utf8
+"@ | Set-Content "${TMPFILE}.cxx" -Encoding ascii
     foreach ($std in @(17, 14, 11)) {
         $std_flags = cmake_extract_standard_flags "${cmake_toolchain}" "CXX" "${std}"
         $std_flags = $std_flags -split '\s+'
@@ -1586,19 +1594,19 @@ if ("${cmake_bootstrap_generator}" -eq "Ninja") {
 rule cc
   command = ${cmake_c_compiler} ${cmake_ld_flags} ${cmake_c_flags} -o $out $in
 build test: cc test.c
-"@ | Set-Content "build.ninja" -Encoding utf8
+"@ | Set-Content "build.ninja" -Encoding ascii
 }
 else {
     Write-Output @"
 test: test.c
 ${tab}${cmake_c_compiler} ${cmake_ld_flags} ${cmake_c_flags} -o test test.c
-"@ | Set-Content "Makefile" -Encoding utf8
+"@ | Set-Content "Makefile" -Encoding ascii
 }
 
 Write-Output @"
 #include <stdio.h>
 int main(){ printf("1%c", (char)0x0a); return 0; }
-"@ | Set-Content "test.c" -Encoding utf8
+"@ | Set-Content "test.c" -Encoding ascii
 $cmake_original_make_flags = "${cmake_make_flags}"
 if ("${cmake_parallel_make}" -ne "") {
     $cmake_make_flags += "-j ${cmake_parallel_make}"
@@ -1798,14 +1806,279 @@ foreach ($a in ${KWSYS_FILES}) {
     $cmsys_header_files += "cmsys\${a}"
 }
 
-"#pragma once" | Add-Content "${cmake_bootstrap_dir}\cmThirdParty.h.tmp" -Encoding utf8
+"#pragma once" | Add-Content "${cmake_bootstrap_dir}\cmThirdParty.h.tmp" -Encoding ascii
 if ($bootstrap_system_libuv) {
-    "#define CMAKE_USE_SYSTEM_LIBUV" | Add-Content "${cmake_bootstrap_dir}\cmThirdParty.h.tmp" -Encoding utf8
+    "#define CMAKE_USE_SYSTEM_LIBUV" | Add-Content "${cmake_bootstrap_dir}\cmThirdParty.h.tmp" -Encoding ascii
 }
 if ($bootstrap_system_jsoncpp) {
-    "#define CMAKE_USE_SYSTEM_JSONCPP" | Add-Content "${cmake_bootstrap_dir}\cmThirdParty.h.tmp" -Encoding utf8
+    "#define CMAKE_USE_SYSTEM_JSONCPP" | Add-Content "${cmake_bootstrap_dir}\cmThirdParty.h.tmp" -Encoding ascii
 }
 if ($bootstrap_system_librhash) {
-    "#define CMAKE_USE_SYSTEM_LIBRHASH" | Add-Content "${cmake_bootstrap_dir}\cmThirdParty.h.tmp" -Encoding utf8
+    "#define CMAKE_USE_SYSTEM_LIBRHASH" | Add-Content "${cmake_bootstrap_dir}\cmThirdParty.h.tmp" -Encoding ascii
 }
 cmake_generate_file_tmp "${cmake_bootstrap_dir}\cmThirdParty.h" "${cmake_bootstrap_dir}\cmThirdParty.h.tmp"
+
+# Generate Makefile
+$dep = ${cmsys_header_files} + "cmConfigure.h"
+# WIN_PATH DONE
+foreach ($h in Get-ChildItem "$cmake_source_dir\Source\*.hxx") {
+    $dep += "$(cmake_escape_artifact ${h})"
+}
+
+# WIN_PATH DONE
+foreach ($h in Get-ChildItem "$cmake_source_dir\Source\*.h") {
+    $dep += "$(cmake_escape_artifact ${h})"
+}
+
+# WIN_PATH DONE
+foreach ($h in ${CMAKE_STD_CXX_HEADERS}) {
+    $dep += "$(cmake_escape_artifact "${cmake_source_dir}\Utilities\std\cm\${h}")"
+}
+
+$objs = @()
+foreach ($a in ${CMAKE_CXX_SOURCES} + ${CMAKE_C_SOURCES} + ${CMAKE_STD_CXX_SOURCES} + ${LexerParser_CXX_SOURCES} + ${LexerParser_C_SOURCES} + ${KWSYS_CXX_SOURCES} + ${KWSYS_C_SOURCES}) {
+    $objs += "${a}.o"
+}
+
+if ($bootstrap_system_libuv) {
+    foreach ($a in ${LIBUV_C_SOURCES}) {
+        $objs += "uv-$(cmake_obj ${a})"
+    }
+}
+
+if ($bootstrap_system_librhash) {
+    foreach ($a in ${LIBRHASH_C_SOURCES}) {
+        $objs += "rhash-$(cmake_obj ${a})"
+    }
+}
+
+if ($bootstrap_system_jsoncpp) {
+    foreach ($a in ${JSONCPP_CXX_SOURCES}) {
+        $objs += "jsoncpp-$(cmake_obj ${a})"
+    }
+}
+
+# WIN_PATH DONE
+$uv_c_flags = @("-DWIN32_LEAN_AND_MEAN", "-D_WIN32_WINNT=0x0600")
+$libs = @("-ladvapi32", "-ldbghelp", "-liphlpapi", "-lole32", "-loleaut32", "-lpsapi", "-lshell32", "-luser32", "-luserenv", "-luuid", "-lws2_32")
+if ($bootstrap_system_libuv) {
+    $uv_c_flags += "-I${cmake_source_dir}\Utilities\cmlibuv\include"
+    $uv_c_flags += "-I${cmake_source_dir}\Utilities\cmlibuv\src\win"
+    $uv_c_flags += "-I${cmake_source_dir}\Utilities\cmlibuv\src"
+}
+else {
+    if (Get-Command pkg-config -ErrorAction SilentlyContinue) {
+        $use_uv_flags = "$(pkg-config --cflags libuv)"
+        $use_uv_ldflags = "$(pkg-config --libs libuv)"
+        $cmake_c_flags += ${use_uv_flags}
+        $cmake_cxx_flags += ${use_uv_flags}
+    }
+    else {
+        $use_uv_ldflags = @("-luv")
+    }
+  
+    $libs += ${use_uv_ldflags}
+}
+
+$librhash_c_flags = @("-DNO_IMPORT_EXPORT")
+if ($bootstrap_system_librhash) {
+    if (Get-Command pkg-config -ErrorAction SilentlyContinue) {
+        $use_librhash_flags = "$(pkg-config --cflags librhash)"
+        $use_librhash_ldflags = "$(pkg-config --libs librhash)"
+        $cmake_c_flags += ${use_librhash_flags}
+        $cmake_cxx_flags += ${use_librhash_flags}
+    }
+    else {
+        $use_librhash_ldflags = @("-lrhash")
+    }
+
+    $libs += ${use_librhash_ldflags}
+}
+
+$jsoncpp_cxx_flags = @()
+if ($bootstrap_system_jsoncpp) {
+    # WIN_PATH DONE
+    $jsoncpp_cxx_flags += "-I${cmake_source_dir}\Utilities\cmjsoncpp\include"
+}
+else {
+    if (Get-Command pkg-config -ErrorAction SilentlyContinue) {
+        $use_jsoncpp_flags = "$(pkg-config --cflags jsoncpp)"
+        $use_jsoncpp_ldflags = "$(pkg-config --libs jsoncpp)"
+        $cmake_cxx_flags += ${use_jsoncpp_flags}
+    }
+    else {
+        $use_jsoncpp_ldflags = @("-ljsoncpp")
+    }
+    
+    $libs += ${use_jsoncpp_ldflags}
+}
+
+function write_source_rule {
+    param (
+        $lang,
+        $obj,
+        $src,
+        $src_flags
+    )
+
+    if ("${lang}" -eq "c") {
+        $ninja_rule = "cc"
+        $compiler = "${cmake_c_compiler}"
+        $flags = "${cmake_c_flags}"
+    } elseif ("${lang}" -eq "cxx") {
+        $ninja_rule = "cxx"
+        $compiler = "${cmake_cxx_compiler}"
+        $flags = "${cmake_cxx_flags}"
+    } else {
+        # TODO: Throw error when lang is not c or cxx
+    }
+
+    $asciiNoBom = New-Object System.Text.UTF8Encoding $false
+    if ("${cmake_bootstrap_generator}" -eq "Ninja") {
+        "build ${obj} : ${ninja_rule} ${src} | ${dep}" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding asciiNoBOM
+        "  srcflags = ${src_flags}" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding asciiNoBOM
+    } else {
+        #[System.IO.File]::AppendAllText("${cmake_bootstrap_dir}\Makefile", "${obj} : ${src} ${dep}`n", $asciiNoBom)
+        "${obj} : ${src} ${dep}" | Add-Content "${cmake_bootstrap_dir}\Makefile" -Encoding ascii
+        #[System.IO.File]::AppendAllText("${cmake_bootstrap_dir}\Makefile", "${tab}${compiler} ${flags} ${src_flags} -c ${src} -o ${obj}`n", $asciiNoBom)
+        "${tab}${compiler} ${flags} ${src_flags} -c ${src} -o ${obj}" | Add-Content "${cmake_bootstrap_dir}\Makefile" -Encoding ascii
+    }
+}
+
+$cmake_c_flags_String = "-DKWSYS_STRING_C"
+$cmake_c_flags_EncodingC = "-DKWSYS_ENCODING_DEFAULT_CODEPAGE=CP_ACP"
+$cmake_cxx_flags_EncodingCXX = "${cmake_c_flags_EncodingC}"
+$cmake_cxx_flags_cmProcessOutput = "${cmake_c_flags_EncodingC}"
+$cmake_cxx_flags_SystemTools = @(
+  "-DKWSYS_CXX_HAS_SETENV=${KWSYS_CXX_HAS_SETENV}",
+  "-DKWSYS_CXX_HAS_UNSETENV=${KWSYS_CXX_HAS_UNSETENV}",
+  "-DKWSYS_CXX_HAS_ENVIRON_IN_STDLIB_H=${KWSYS_CXX_HAS_ENVIRON_IN_STDLIB_H}",
+  "-DKWSYS_CXX_HAS_UTIMENSAT=${KWSYS_CXX_HAS_UTIMENSAT}",
+  "-DKWSYS_CXX_HAS_UTIMES=${KWSYS_CXX_HAS_UTIMES}"
+)
+
+# WIN_PATH DONE
+$cmake_c_flags += @(
+    "-DCMAKE_BOOTSTRAP",
+    "-I${cmake_bootstrap_dir}", # DUBBLE I
+    "-I${cmake_source_dir}\Source",
+    "-I${cmake_source_dir}\Source\LexerParser",
+    "-I${cmake_source_dir}\Utilities"
+)
+
+# WIN_PATH DONE
+$cmake_cxx_flags += ${cmake_have_cxx_features} + @(
+    "-DCMAKE_BOOTSTRAP",
+    "-I${cmake_bootstrap_dir}",
+    "-I${cmake_source_dir}\Source",
+    "-I${cmake_source_dir}\Source\LexerParser",
+    "-I${cmake_source_dir}\Utilities\std",
+    "-I${cmake_source_dir}\Utilities"
+)
+
+if ("${cmake_bootstrap_generator}" -eq "Ninja") {
+    
+    "cc = ${cmake_c_compiler}" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
+    "cxx = ${cmake_cxx_compiler}" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
+    "cflags = ${cmake_c_flags}" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
+    "cxxflags = ${cmake_cxx_flags}" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
+    "ldflags = ${cmake_ld_flags}" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
+    "rule cc" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
+    "  command = \$cc \$cflags \$srcflags -c \$in -o \$out" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
+    "rule cxx" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
+    "  command = \$cxx \$cxxflags \$srcflags -c \$in -o \$out" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
+    "rule link" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
+    "  command = \$cxx \$ldflags \$cxxflags \$in \$libs -o \$out" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
+    "build cmake: link ${objs}" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
+    "  libs = ${libs}" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
+}
+else {
+    "cmake: ${objs}" | Add-Content "${cmake_bootstrap_dir}\Makefile" -Encoding ascii
+    "${tab}${cmake_cxx_compiler} ${cmake_ld_flags} ${cmake_cxx_flags} ${objs} ${libs} -o cmake" | Add-Content "${cmake_bootstrap_dir}\Makefile" -Encoding ascii
+}
+
+# WIN_PATH DONE
+foreach ($a in ${CMAKE_CXX_SOURCES}) {
+    $src_path = "${cmake_source_dir}\Source\${a}.cxx"
+    $src = cmake_escape_artifact ${src_path}
+    $varname = "cmake_cxx_flags_${a}"
+    $src_flags = (Get-Variable $varname -ErrorAction SilentlyContinue).Value
+    write_source_rule "cxx" "${a}.o" "${src}" "${src_flags}"
+}
+
+# WIN_PATH DONE
+foreach ($a in ${CMAKE_C_SOURCES}) {
+    $src_path = "${cmake_source_dir}\Source\${a}.c"
+    $src = cmake_escape_artifact ${src_path}
+    write_source_rule "c" "${a}.o" "${src}" ""
+}
+
+# WIN_PATH DONE
+foreach ($a in ${CMAKE_STD_CXX_SOURCES}) {
+    $src_path = "${cmake_source_dir}\Utilities\std\cm\bits\${a}.cxx"
+    $src = cmake_escape_artifact ${src_path}
+    $varname = "cmake_cxx_flags_${a}"
+    $src_flags = (Get-Variable $varname -ErrorAction SilentlyContinue).Value
+    write_source_rule "cxx" "${a}.o" "${src}" "${src_flags}"
+}
+
+# WIN_PATH DONE
+foreach ($a in ${LexerParser_CXX_SOURCES}) {
+    $src_path = "${cmake_source_dir}\Source\LexerParser\${a}.cxx"
+    $src = cmake_escape_artifact ${src_path}
+    $varname = "cmake_cxx_flags_${a}"
+    $src_flags = (Get-Variable $varname -ErrorAction SilentlyContinue).Value
+    write_source_rule "cxx" "${a}.o" "${src}" "${src_flags}"
+}
+
+# WIN_PATH DONE
+foreach ($a in ${LexerParser_C_SOURCES}) {
+    $src_path = "${cmake_source_dir}\Source\LexerParser\${a}.c"
+    $src = cmake_escape_artifact ${src_path}
+    write_source_rule "c" "${a}.o" "${src}" ""
+}
+
+# WIN_PATH DONE
+foreach ($a in ${KWSYS_C_SOURCES}) {
+    $src_path = "${cmake_source_dir}\Source\kwsys\${a}.c"
+    $src = cmake_escape_artifact ${src_path}
+    $varname = "cmake_c_flags_${a}"
+    $src_flags = (Get-Variable $varname -ErrorAction SilentlyContinue).Value + " -DKWSYS_NAMESPACE=cmsys"
+    write_source_rule "c" "${a}.o" "${src}" "${src_flags}"
+}
+
+# WIN_PATH DONE
+foreach ($a in ${KWSYS_CXX_SOURCES}) {
+    $src_path = "${cmake_source_dir}\Source\kwsys\${a}.cxx"
+    $src = cmake_escape_artifact ${src_path}
+    $varname = "cmake_cxx_flags_${a}"
+    $src_flags = (Get-Variable $varname -ErrorAction SilentlyContinue).Value + " -DKWSYS_NAMESPACE=cmsys"
+    write_source_rule "cxx" "${a}.o" "${src}" "${src_flags}"
+}
+
+# WIN_PATH DONE
+if ($bootstrap_system_libuv) {
+    foreach ($a in ${LIBUV_C_SOURCES}) {
+        $src_path = "${cmake_source_dir}\Utilities\cmlibuv\${a}"
+        $src = cmake_escape_artifact ${src_path}
+        write_source_rule "c" "uv-$(cmake_obj ${a})" "${src}" "${uv_c_flags}"
+    }
+}
+
+# WIN_PATH DONE
+if ($bootstrap_system_librhash) {
+    foreach ($a in ${LIBRHASH_C_SOURCES}) {
+        $src_path = "${cmake_source_dir}\Utilities\cmlibrhash\${a}"
+        $src = cmake_escape_artifact ${src_path}
+        write_source_rule "c" "rhash-$(cmake_obj ${a})" "${src}" "${librhash_c_flags}"
+    }
+}
+
+# WIN_PATH DONE
+if ($bootstrap_system_jsoncpp) {
+    foreach ($a in ${JSONCPP_CXX_SOURCES}) {
+        $src_path = "${cmake_source_dir}\Utilities\cmjsoncpp\${a}"
+        $src = cmake_escape_artifact ${src_path}
+        write_source_rule "cxx" "jsoncpp-$(cmake_obj ${a})" "${src}" "${jsoncpp_cxx_flags}"
+    }
+}
