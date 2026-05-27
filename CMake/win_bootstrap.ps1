@@ -238,14 +238,19 @@ foreach ($key in $no_system_map.Keys) {
 # Choose the default install prefix.
 if (-not [string]::IsNullOrEmpty($PROGRAMFILES)) {
     $cmake_default_prefix = "${PROGRAMFILES}\CMake"
-} elseif (-not [string]::IsNullOrEmpty($ProgramFiles)) {
+}
+elseif (-not [string]::IsNullOrEmpty($ProgramFiles)) {
     $cmake_default_prefix = "${ProgramFiles}\CMake"`
-} elseif (-not [string]::IsNullOrEmpty($SYSTEMDRIVE)) {
+
+}
+elseif (-not [string]::IsNullOrEmpty($SYSTEMDRIVE)) {
     $cmake_default_prefix = "${SYSTEMDRIVE}\Program Files\CMake"
-} elseif (-not [string]::IsNullOrEmpty($SystemDrive)) {
+}
+elseif (-not [string]::IsNullOrEmpty($SystemDrive)) {
     $cmake_default_prefix = "${SystemDrive}\Program Files\CMake"
-} else {
-    $cmake_default_prefix="C:\Program Files\CMake"
+}
+else {
+    $cmake_default_prefix = "C:\Program Files\CMake"
 }
 
 # Set the cmake_prefix_dir to the default, if not yet set
@@ -257,7 +262,7 @@ if ("" -eq $cmake_prefix_dir) {
 # Bootstrapping from an MSYS prompt.
 # CHANGE_COMPILER
 if ("" -eq $cmake_bootstrap_generator) {
-    $cmake_bootstrap_generator="MSYS Makefiles"
+    $cmake_bootstrap_generator = "MSYS Makefiles"
 }
 
 function cmake_version_component {
@@ -267,7 +272,7 @@ function cmake_version_component {
 
     (
         Select-String -Path "${cmake_source_dir}\Source\CMakeVersion.cmake" -Pattern "^set\(CMake_VERSION_${component}"
-    ).Line -replace ".* ([0-9]+)\).*",'$1'
+    ).Line -replace ".* ([0-9]+)\).*", '$1'
 }
 
 # Install destination extraction function.
@@ -280,14 +285,14 @@ function cmake_install_dest_default {
     $pattern = "^\s*set\(CMAKE_${dir}_DIR_DEFAULT\s*""([^""]*)"".*$"
     (
         Select-String -Path "${cmake_source_dir}\Source\CMakeInstallDestinations.cmake" -Pattern "^\s*set\(CMAKE_${dir}_DIR_DEFAULT.*\)\s*#\s*${keyword}\s*$"
-    ).Line -replace $pattern,'$1' -replace "\$\{CMake_VERSION_MAJOR\}", "${cmake_version_major}" -replace "\$\{CMake_VERSION_MINOR\}", "${cmake_version_minor}" -replace "\$\{CMake_VERSION_PATCH\}", "${cmake_version_patch}"
+    ).Line -replace $pattern, '$1' -replace "\$\{CMake_VERSION_MAJOR\}", "${cmake_version_major}" -replace "\$\{CMake_VERSION_MINOR\}", "${cmake_version_minor}" -replace "\$\{CMake_VERSION_PATCH\}", "${cmake_version_patch}"
 }
 
 # REMOVED upper method, internal methods available
 
 # Detect system and directory information.
 # CHANGE: uname was used here before, this variable is not really used though
-$cmake_system="Windows"
+$cmake_system = "Windows"
 $cmake_source_dir = Split-Path -Parent $PSCommandPath
 $cmake_binary_dir = (Get-Location).Path
 
@@ -296,31 +301,31 @@ $cmake_version_major = cmake_version_component MAJOR
 $cmake_version_minor = cmake_version_component MINOR
 $cmake_version_patch = cmake_version_component PATCH
 $cmake_version = "${cmake_version_major}.${cmake_version_minor}.${cmake_version_patch}"
-$cmake_version_rc= cmake_version_component RC
+$cmake_version_rc = cmake_version_component RC
 if (-not [string]::IsNullOrEmpty($cmake_version_rc)) {
-    $cmake_version="${cmake_version}-rc${cmake_version_rc}"
+    $cmake_version = "${cmake_version}-rc${cmake_version_rc}"
 }
 
 # CMake copyright
-$cmake_copyright = (Select-String -Path "${cmake_source_dir}\LICENSE.rst" -Pattern "^Copyright .* Kitware").Line -replace "`Contributors.*`_","Contributors"
+$cmake_copyright = (Select-String -Path "${cmake_source_dir}\LICENSE.rst" -Pattern "^Copyright .* Kitware").Line -replace "`Contributors.*`_", "Contributors"
 
 # REMOVED: Some of the variables here are removed, because not needed for flag parsing
-$cmake_bin_dir_keyword="OTHER"
-$cmake_data_dir_keyword="OTHER"
-$cmake_doc_dir_keyword="OTHER"
-$cmake_man_dir_keyword="OTHER"
-$cmake_xdgdata_dir_keyword="OTHER"
+$cmake_bin_dir_keyword = "OTHER"
+$cmake_data_dir_keyword = "OTHER"
+$cmake_doc_dir_keyword = "OTHER"
+$cmake_man_dir_keyword = "OTHER"
+$cmake_xdgdata_dir_keyword = "OTHER"
 
 # OBSOLETE: Determine whether this is a MinGW environment.
 
 # Set tools and extensions for this platform.
 # CHECK .tmp for command line/windows
-$_tmp=".tmp"
-$_cmk=".cmk"
+$_tmp = ".tmp"
+$_cmk = ".cmk"
 # REMOVED _diff, because internal methods available
 
 # Construct bootstrap directory name.
-$cmake_bootstrap_dir="${cmake_binary_dir}\Bootstrap${_cmk}"
+$cmake_bootstrap_dir = "${cmake_binary_dir}\Bootstrap${_cmk}"
 
 # REMOVED: Helper function to fix windows paths.
 
@@ -488,303 +493,303 @@ $CMAKE_PROBLEMATIC_FILES = @(
 )
 
 $CMAKE_UNUSED_SOURCES = @(
-  "cmGlobalXCodeGenerator",
-  "cmLocalXCodeGenerator",
-  "cmXCodeObject",
-  "cmXCode21Object",
-  "cmSourceGroup"
+    "cmGlobalXCodeGenerator",
+    "cmLocalXCodeGenerator",
+    "cmXCodeObject",
+    "cmXCode21Object",
+    "cmSourceGroup"
 )
 
 $CMAKE_CXX_SOURCES = @(
-  "cmAddCompileDefinitionsCommand",
-  "cmAddCustomCommandCommand",
-  "cmAddCustomTargetCommand",
-  "cmAddDefinitionsCommand",
-  "cmAddDependenciesCommand",
-  "cmAddExecutableCommand",
-  "cmAddLibraryCommand",
-  "cmAddSubDirectoryCommand",
-  "cmAddTestCommand",
-  "cmArgumentParser",
-  "cmBinUtilsLinker",
-  "cmBinUtilsLinuxELFGetRuntimeDependenciesTool",
-  "cmBinUtilsLinuxELFLinker",
-  "cmBinUtilsLinuxELFObjdumpGetRuntimeDependenciesTool",
-  "cmBinUtilsMacOSMachOGetRuntimeDependenciesTool",
-  "cmBinUtilsMacOSMachOLinker",
-  "cmBinUtilsMacOSMachOOToolGetRuntimeDependenciesTool",
-  "cmBinUtilsWindowsPEGetRuntimeDependenciesTool",
-  "cmBinUtilsWindowsPEDumpbinGetRuntimeDependenciesTool",
-  "cmBinUtilsWindowsPELinker",
-  "cmBinUtilsWindowsPEObjdumpGetRuntimeDependenciesTool",
-  "cmBlockCommand",
-  "cmBreakCommand",
-  "cmBuildCommand",
-  "cmBuildDatabase",
-  "cmCMakeLanguageCommand",
-  "cmCMakeMinimumRequired",
-  "cmList",
-  "cmCMakeDiagnosticCommand",
-  "cmCMakePath",
-  "cmCMakePathCommand",
-  "cmCMakePolicyCommand",
-  "cmCMakeString",
-  "cmCPackPropertiesGenerator",
-  "cmCacheManager",
-  "cmCommands",
-  "cmCommonTargetGenerator",
-  "cmComputeComponentGraph",
-  "cmComputeLinkDepends",
-  "cmComputeLinkInformation",
-  "cmComputeTargetDepends",
-  "cmConditionEvaluator",
-  "cmConfigureFileCommand",
-  "cmContinueCommand",
-  "cmCoreTryCompile",
-  "cmCreateTestSourceList",
-  "cmCryptoHash",
-  "cmCustomCommand",
-  "cmCustomCommandGenerator",
-  "cmCustomCommandLines",
-  "cmCxxModuleMapper",
-  "cmCxxModuleUsageEffects",
-  "cmDefinePropertyCommand",
-  "cmDefinitions",
-  "cmDiagnostics",
-  "cmDiscoverTestsCommand",
-  "cmDocumentationFormatter",
-  "cmELF",
-  "cmEnableLanguageCommand",
-  "cmEnableTestingCommand",
-  "cmEnvironment",
-  "cmEvaluatedTargetProperty",
-  "cmExecProgramCommand",
-  "cmExecuteProcessCommand",
-  "cmExpandedCommandArgument",
-  "cmExperimental",
-  "cmExportBuildCMakeConfigGenerator",
-  "cmExportBuildFileGenerator",
-  "cmExportCMakeConfigGenerator",
-  "cmExportFileGenerator",
-  "cmExportInstallCMakeConfigGenerator",
-  "cmExportInstallFileGenerator",
-  "cmExportSet",
-  "cmExportTryCompileFileGenerator",
-  "cmExprParserHelper",
-  "cmExternalMakefileProjectGenerator",
-  "cmFileCommand",
-  "cmFileCommand_ReadMacho",
-  "cmFileCopier",
-  "cmFileInstaller",
-  "cmFileSet",
-  "cmFileSetMetadata",
-  "cmFileTime",
-  "cmFileTimeCache",
-  "cmFileTimes",
-  "cmFindBase",
-  "cmFindCommon",
-  "cmFindFileCommand",
-  "cmFindLibraryCommand",
-  "cmFindPackageCommand",
-  "cmFindPackageStack",
-  "cmFindPathCommand",
-  "cmFindProgramCommand",
-  "cmForEachCommand",
-  "cmFunctionBlocker",
-  "cmFunctionCommand",
-  "cmFSPermissions",
-  "cmGeneratedFileStream",
-  "cmGenExContext",
-  "cmGenExEvaluation",
-  "cmGeneratorExpression",
-  "cmGeneratorExpressionDAGChecker",
-  "cmGeneratorExpressionEvaluationFile",
-  "cmGeneratorExpressionEvaluator",
-  "cmGeneratorExpressionLexer",
-  "cmGeneratorExpressionNode",
-  "cmGeneratorExpressionParser",
-  "cmGeneratorFileSet",
-  "cmGeneratorFileSets",
-  "cmGeneratorTarget",
-  "cmGeneratorTarget_CompatibleInterface",
-  "cmGeneratorTarget_HeaderSetVerification",
-  "cmGeneratorTarget_IncludeDirectories",
-  "cmGeneratorTarget_Link",
-  "cmGeneratorTarget_LinkDirectories",
-  "cmGeneratorTarget_Options",
-  "cmGeneratorTarget_Sources",
-  "cmGeneratorTarget_TransitiveProperty",
-  "cmGetCMakePropertyCommand",
-  "cmGetDirectoryPropertyCommand",
-  "cmGetFilenameComponentCommand",
-  "cmGetPipes",
-  "cmGetPropertyCommand",
-  "cmGetSourceFilePropertyCommand",
-  "cmGetTargetPropertyCommand",
-  "cmGetTestPropertyCommand",
-  "cmGlobalCommonGenerator",
-  "cmGlobalGenerator",
-  "cmGlobVerificationManager",
-  "cmHexFileConverter",
-  "cmIfCommand",
-  "cmImportedCxxModuleInfo",
-  "cmIncludeCommand",
-  "cmIncludeGuardCommand",
-  "cmIncludeDirectoryCommand",
-  "cmIncludeRegularExpressionCommand",
-  "cmInstallCMakeConfigExportGenerator",
-  "cmInstallCommand",
-  "cmInstallCommandArguments",
-  "cmInstallCxxModuleBmiGenerator",
-  "cmInstallDirectoryGenerator",
-  "cmInstallExportGenerator",
-  "cmInstallFileSetGenerator",
-  "cmInstallFilesCommand",
-  "cmInstallFilesGenerator",
-  "cmInstallGenerator",
-  "cmInstallGetRuntimeDependenciesGenerator",
-  "cmInstallImportedRuntimeArtifactsGenerator",
-  "cmInstallDirs",
-  "cmInstallRuntimeDependencySet",
-  "cmInstallRuntimeDependencySetGenerator",
-  "cmInstallScriptGenerator",
-  "cmInstallSubdirectoryGenerator",
-  "cmInstallTargetGenerator",
-  "cmInstallTargetsCommand",
-  "cmInstalledFile",
-  "cmJSONHelpers",
-  "cmJSONState",
-  "cmLDConfigLDConfigTool",
-  "cmLDConfigTool",
-  "cmLinkDirectoriesCommand",
-  "cmLinkItem",
-  "cmLinkItemGraphVisitor",
-  "cmLinkLineComputer",
-  "cmLinkLineDeviceComputer",
-  "cmListCommand",
-  "cmListFileCache",
-  "cmLocalCommonGenerator",
-  "cmLocalGenerator",
-  "cmMSVC60LinkLineComputer",
-  "cmMacroCommand",
-  "cmMakeDirectoryCommand",
-  "cmMakefile",
-  "cmMarkAsAdvancedCommand",
-  "cmMathCommand",
-  "cmMessageCommand",
-  "cmMessenger",
-  "cmNewLineStyle",
-  "cmOSXBundleGenerator",
-  "cmOptionCommand",
-  "cmOrderDirectories",
-  "cmObjectLocation",
-  "cmOutputConverter",
-  "cmParseArgumentsCommand",
-  "cmPathLabel",
-  "cmPathResolver",
-  "cmPolicies",
-  "cmProcessOutput",
-  "cmProjectCommand",
-  "cmValue",
-  "cmPropertyDefinition",
-  "cmPropertyMap",
-  "cmGccDepfileLexerHelper",
-  "cmGccDepfileReader",
-  "cmReturnCommand",
-  "cmPackageInfoReader",
-  "cmPlaceholderExpander",
-  "cmPlistParser",
-  "cmRulePlaceholderExpander",
-  "cmRuntimeDependencyArchive",
-  "cmScriptGenerator",
-  "cmSearchPath",
-  "cmSeparateArgumentsCommand",
-  "cmSetCommand",
-  "cmSetDirectoryPropertiesCommand",
-  "cmSetPropertyCommand",
-  "cmSetSourceFilesPropertiesCommand",
-  "cmSetTargetPropertiesCommand",
-  "cmSetTestsPropertiesCommand",
-  "cmSiteNameCommand",
-  "cmSourceFile",
-  "cmSourceFileLocation",
-  "cmStandardLevelResolver",
-  "cmState",
-  "cmStateDirectory",
-  "cmStateSnapshot",
-  "cmStdIoConsole",
-  "cmStdIoInit",
-  "cmStdIoStream",
-  "cmStdIoTerminal",
-  "cmString",
-  "cmStringAlgorithms",
-  "cmStringReplaceHelper",
-  "cmStringCommand",
-  "cmSubcommandTable",
-  "cmSubdirCommand",
-  "cmSystemTools",
-  "cmTarget",
-  "cmTargetCompileDefinitionsCommand",
-  "cmTargetCompileFeaturesCommand",
-  "cmTargetCompileOptionsCommand",
-  "cmTargetIncludeDirectoriesCommand",
-  "cmTargetLinkLibrariesCommand",
-  "cmTargetLinkOptionsCommand",
-  "cmTargetPrecompileHeadersCommand",
-  "cmTargetPropCommandBase",
-  "cmTargetPropertyComputer",
-  "cmTargetPropertyEntry",
-  "cmTargetSourcesCommand",
-  "cmTargetTraceDependencies",
-  "cmTest",
-  "cmTestGenerator",
-  "cmTimestamp",
-  "cmTransformDepfile",
-  "cmTryCompileCommand",
-  "cmTryRunCommand",
-  "cmUnsetCommand",
-  "cmUVHandlePtr",
-  "cmUVProcessChain",
-  "cmVersion",
-  "cmWhileCommand",
-  "cmWindowsRegistry",
-  "cmWorkingDirectory",
-  "cmXcFramework",
-  "cmake",
-  "cmakemain",
-  "cmcmd",
-  "cm_fileno",
-  "cmGlobalMSYSMakefileGenerator",
-  "cmGlobalMinGWMakefileGenerator",
-  "cmVSSetupHelper"
+    "cmAddCompileDefinitionsCommand",
+    "cmAddCustomCommandCommand",
+    "cmAddCustomTargetCommand",
+    "cmAddDefinitionsCommand",
+    "cmAddDependenciesCommand",
+    "cmAddExecutableCommand",
+    "cmAddLibraryCommand",
+    "cmAddSubDirectoryCommand",
+    "cmAddTestCommand",
+    "cmArgumentParser",
+    "cmBinUtilsLinker",
+    "cmBinUtilsLinuxELFGetRuntimeDependenciesTool",
+    "cmBinUtilsLinuxELFLinker",
+    "cmBinUtilsLinuxELFObjdumpGetRuntimeDependenciesTool",
+    "cmBinUtilsMacOSMachOGetRuntimeDependenciesTool",
+    "cmBinUtilsMacOSMachOLinker",
+    "cmBinUtilsMacOSMachOOToolGetRuntimeDependenciesTool",
+    "cmBinUtilsWindowsPEGetRuntimeDependenciesTool",
+    "cmBinUtilsWindowsPEDumpbinGetRuntimeDependenciesTool",
+    "cmBinUtilsWindowsPELinker",
+    "cmBinUtilsWindowsPEObjdumpGetRuntimeDependenciesTool",
+    "cmBlockCommand",
+    "cmBreakCommand",
+    "cmBuildCommand",
+    "cmBuildDatabase",
+    "cmCMakeLanguageCommand",
+    "cmCMakeMinimumRequired",
+    "cmList",
+    "cmCMakeDiagnosticCommand",
+    "cmCMakePath",
+    "cmCMakePathCommand",
+    "cmCMakePolicyCommand",
+    "cmCMakeString",
+    "cmCPackPropertiesGenerator",
+    "cmCacheManager",
+    "cmCommands",
+    "cmCommonTargetGenerator",
+    "cmComputeComponentGraph",
+    "cmComputeLinkDepends",
+    "cmComputeLinkInformation",
+    "cmComputeTargetDepends",
+    "cmConditionEvaluator",
+    "cmConfigureFileCommand",
+    "cmContinueCommand",
+    "cmCoreTryCompile",
+    "cmCreateTestSourceList",
+    "cmCryptoHash",
+    "cmCustomCommand",
+    "cmCustomCommandGenerator",
+    "cmCustomCommandLines",
+    "cmCxxModuleMapper",
+    "cmCxxModuleUsageEffects",
+    "cmDefinePropertyCommand",
+    "cmDefinitions",
+    "cmDiagnostics",
+    "cmDiscoverTestsCommand",
+    "cmDocumentationFormatter",
+    "cmELF",
+    "cmEnableLanguageCommand",
+    "cmEnableTestingCommand",
+    "cmEnvironment",
+    "cmEvaluatedTargetProperty",
+    "cmExecProgramCommand",
+    "cmExecuteProcessCommand",
+    "cmExpandedCommandArgument",
+    "cmExperimental",
+    "cmExportBuildCMakeConfigGenerator",
+    "cmExportBuildFileGenerator",
+    "cmExportCMakeConfigGenerator",
+    "cmExportFileGenerator",
+    "cmExportInstallCMakeConfigGenerator",
+    "cmExportInstallFileGenerator",
+    "cmExportSet",
+    "cmExportTryCompileFileGenerator",
+    "cmExprParserHelper",
+    "cmExternalMakefileProjectGenerator",
+    "cmFileCommand",
+    "cmFileCommand_ReadMacho",
+    "cmFileCopier",
+    "cmFileInstaller",
+    "cmFileSet",
+    "cmFileSetMetadata",
+    "cmFileTime",
+    "cmFileTimeCache",
+    "cmFileTimes",
+    "cmFindBase",
+    "cmFindCommon",
+    "cmFindFileCommand",
+    "cmFindLibraryCommand",
+    "cmFindPackageCommand",
+    "cmFindPackageStack",
+    "cmFindPathCommand",
+    "cmFindProgramCommand",
+    "cmForEachCommand",
+    "cmFunctionBlocker",
+    "cmFunctionCommand",
+    "cmFSPermissions",
+    "cmGeneratedFileStream",
+    "cmGenExContext",
+    "cmGenExEvaluation",
+    "cmGeneratorExpression",
+    "cmGeneratorExpressionDAGChecker",
+    "cmGeneratorExpressionEvaluationFile",
+    "cmGeneratorExpressionEvaluator",
+    "cmGeneratorExpressionLexer",
+    "cmGeneratorExpressionNode",
+    "cmGeneratorExpressionParser",
+    "cmGeneratorFileSet",
+    "cmGeneratorFileSets",
+    "cmGeneratorTarget",
+    "cmGeneratorTarget_CompatibleInterface",
+    "cmGeneratorTarget_HeaderSetVerification",
+    "cmGeneratorTarget_IncludeDirectories",
+    "cmGeneratorTarget_Link",
+    "cmGeneratorTarget_LinkDirectories",
+    "cmGeneratorTarget_Options",
+    "cmGeneratorTarget_Sources",
+    "cmGeneratorTarget_TransitiveProperty",
+    "cmGetCMakePropertyCommand",
+    "cmGetDirectoryPropertyCommand",
+    "cmGetFilenameComponentCommand",
+    "cmGetPipes",
+    "cmGetPropertyCommand",
+    "cmGetSourceFilePropertyCommand",
+    "cmGetTargetPropertyCommand",
+    "cmGetTestPropertyCommand",
+    "cmGlobalCommonGenerator",
+    "cmGlobalGenerator",
+    "cmGlobVerificationManager",
+    "cmHexFileConverter",
+    "cmIfCommand",
+    "cmImportedCxxModuleInfo",
+    "cmIncludeCommand",
+    "cmIncludeGuardCommand",
+    "cmIncludeDirectoryCommand",
+    "cmIncludeRegularExpressionCommand",
+    "cmInstallCMakeConfigExportGenerator",
+    "cmInstallCommand",
+    "cmInstallCommandArguments",
+    "cmInstallCxxModuleBmiGenerator",
+    "cmInstallDirectoryGenerator",
+    "cmInstallExportGenerator",
+    "cmInstallFileSetGenerator",
+    "cmInstallFilesCommand",
+    "cmInstallFilesGenerator",
+    "cmInstallGenerator",
+    "cmInstallGetRuntimeDependenciesGenerator",
+    "cmInstallImportedRuntimeArtifactsGenerator",
+    "cmInstallDirs",
+    "cmInstallRuntimeDependencySet",
+    "cmInstallRuntimeDependencySetGenerator",
+    "cmInstallScriptGenerator",
+    "cmInstallSubdirectoryGenerator",
+    "cmInstallTargetGenerator",
+    "cmInstallTargetsCommand",
+    "cmInstalledFile",
+    "cmJSONHelpers",
+    "cmJSONState",
+    "cmLDConfigLDConfigTool",
+    "cmLDConfigTool",
+    "cmLinkDirectoriesCommand",
+    "cmLinkItem",
+    "cmLinkItemGraphVisitor",
+    "cmLinkLineComputer",
+    "cmLinkLineDeviceComputer",
+    "cmListCommand",
+    "cmListFileCache",
+    "cmLocalCommonGenerator",
+    "cmLocalGenerator",
+    "cmMSVC60LinkLineComputer",
+    "cmMacroCommand",
+    "cmMakeDirectoryCommand",
+    "cmMakefile",
+    "cmMarkAsAdvancedCommand",
+    "cmMathCommand",
+    "cmMessageCommand",
+    "cmMessenger",
+    "cmNewLineStyle",
+    "cmOSXBundleGenerator",
+    "cmOptionCommand",
+    "cmOrderDirectories",
+    "cmObjectLocation",
+    "cmOutputConverter",
+    "cmParseArgumentsCommand",
+    "cmPathLabel",
+    "cmPathResolver",
+    "cmPolicies",
+    "cmProcessOutput",
+    "cmProjectCommand",
+    "cmValue",
+    "cmPropertyDefinition",
+    "cmPropertyMap",
+    "cmGccDepfileLexerHelper",
+    "cmGccDepfileReader",
+    "cmReturnCommand",
+    "cmPackageInfoReader",
+    "cmPlaceholderExpander",
+    "cmPlistParser",
+    "cmRulePlaceholderExpander",
+    "cmRuntimeDependencyArchive",
+    "cmScriptGenerator",
+    "cmSearchPath",
+    "cmSeparateArgumentsCommand",
+    "cmSetCommand",
+    "cmSetDirectoryPropertiesCommand",
+    "cmSetPropertyCommand",
+    "cmSetSourceFilesPropertiesCommand",
+    "cmSetTargetPropertiesCommand",
+    "cmSetTestsPropertiesCommand",
+    "cmSiteNameCommand",
+    "cmSourceFile",
+    "cmSourceFileLocation",
+    "cmStandardLevelResolver",
+    "cmState",
+    "cmStateDirectory",
+    "cmStateSnapshot",
+    "cmStdIoConsole",
+    "cmStdIoInit",
+    "cmStdIoStream",
+    "cmStdIoTerminal",
+    "cmString",
+    "cmStringAlgorithms",
+    "cmStringReplaceHelper",
+    "cmStringCommand",
+    "cmSubcommandTable",
+    "cmSubdirCommand",
+    "cmSystemTools",
+    "cmTarget",
+    "cmTargetCompileDefinitionsCommand",
+    "cmTargetCompileFeaturesCommand",
+    "cmTargetCompileOptionsCommand",
+    "cmTargetIncludeDirectoriesCommand",
+    "cmTargetLinkLibrariesCommand",
+    "cmTargetLinkOptionsCommand",
+    "cmTargetPrecompileHeadersCommand",
+    "cmTargetPropCommandBase",
+    "cmTargetPropertyComputer",
+    "cmTargetPropertyEntry",
+    "cmTargetSourcesCommand",
+    "cmTargetTraceDependencies",
+    "cmTest",
+    "cmTestGenerator",
+    "cmTimestamp",
+    "cmTransformDepfile",
+    "cmTryCompileCommand",
+    "cmTryRunCommand",
+    "cmUnsetCommand",
+    "cmUVHandlePtr",
+    "cmUVProcessChain",
+    "cmVersion",
+    "cmWhileCommand",
+    "cmWindowsRegistry",
+    "cmWorkingDirectory",
+    "cmXcFramework",
+    "cmake",
+    "cmakemain",
+    "cmcmd",
+    "cm_fileno",
+    "cmGlobalMSYSMakefileGenerator",
+    "cmGlobalMinGWMakefileGenerator",
+    "cmVSSetupHelper"
 )
 
 $CMAKE_C_SOURCES = @(
-  "cm_utf8"
+    "cm_utf8"
 )
 
 $CMAKE_STD_CXX_HEADERS = @(
-  "filesystem",
-  "memory",
-  "optional",
-  "shared_mutex",
-  "string_view",
-  "utility"
+    "filesystem",
+    "memory",
+    "optional",
+    "shared_mutex",
+    "string_view",
+    "utility"
 )
 
 $CMAKE_STD_CXX_SOURCES = @(
-  "fs_path",
-  "string_view"
+    "fs_path",
+    "string_view"
 )
 
 $LexerParser_CXX_SOURCES = @(
-  "cmExprLexer",
-  "cmExprParser",
-  "cmGccDepfileLexer"
+    "cmExprLexer",
+    "cmExprParser",
+    "cmGccDepfileLexer"
 )
 
 $LexerParser_C_SOURCES = @(
-  "cmListFileLexer"
+    "cmListFileLexer"
 )
 
 $KWSYS_C_SOURCES = @(
@@ -795,46 +800,46 @@ $KWSYS_C_SOURCES = @(
 )
 
 $KWSYS_CXX_SOURCES = @(
-  "Directory",
-  "EncodingCXX",
-  "FStream",
-  "Glob",
-  "RegularExpression",
-  "Status",
-  "SystemTools"
+    "Directory",
+    "EncodingCXX",
+    "FStream",
+    "Glob",
+    "RegularExpression",
+    "Status",
+    "SystemTools"
 )
 
 $KWSYS_FILES = @(
-  "Directory.hxx",
-  "Encoding.h",
-  "Encoding.hxx",
-  "FStream.hxx",
-  "Glob.hxx",
-  "Process.h",
-  "RegularExpression.hxx",
-  "Status.hxx",
-  "String.h",
-  "System.h",
-  "SystemTools.hxx"
+    "Directory.hxx",
+    "Encoding.h",
+    "Encoding.hxx",
+    "FStream.hxx",
+    "Glob.hxx",
+    "Process.h",
+    "RegularExpression.hxx",
+    "Status.hxx",
+    "String.h",
+    "System.h",
+    "SystemTools.hxx"
 )
 
 $LIBRHASH_C_SOURCES = @(
-  "librhash\algorithms.c",
-  "librhash\byte_order.c",
-  "librhash\hex.c",
-  "librhash\md5.c",
-  "librhash\rhash.c",
-  "librhash\sha1.c",
-  "librhash\sha256.c",
-  "librhash\sha3.c",
-  "librhash\sha512.c",
-  "librhash\util.c"
+    "librhash\algorithms.c",
+    "librhash\byte_order.c",
+    "librhash\hex.c",
+    "librhash\md5.c",
+    "librhash\rhash.c",
+    "librhash\sha1.c",
+    "librhash\sha256.c",
+    "librhash\sha3.c",
+    "librhash\sha512.c",
+    "librhash\util.c"
 )
 
 $JSONCPP_CXX_SOURCES = @(
-  "src\lib_json\json_reader.cpp",
-  "src\lib_json\json_value.cpp",
-  "src\lib_json\json_writer.cpp"
+    "src\lib_json\json_reader.cpp",
+    "src\lib_json\json_value.cpp",
+    "src\lib_json\json_writer.cpp"
 )
 
 $LIBUV_C_SOURCES = @(
@@ -882,7 +887,8 @@ function cmake_generate_file_tmp {
 
     if ((Test-Path $outFile) -and (-not (Compare-Object (Get-Content $tmpFile) (Get-Content $outFile)))) {
         Remove-Item -Force $tmpFile 
-    } else {
+    }
+    else {
         Move-Item -Force $tmpFile $outFile
     }
 }
@@ -914,17 +920,17 @@ function cmake_extract_standard_flags {
 
     $result = ""
     $result += (Get-Content "$cmake_source_dir\Modules\Compiler\$id-$lang.cmake" -ErrorAction SilentlyContinue) |
-        Select-String $pattern |
-        ForEach-Object { $_.Matches[0].Groups[1].Value } |
-        ForEach-Object { $_ -replace ';', ' ' }
+    Select-String $pattern |
+    ForEach-Object { $_.Matches[0].Groups[1].Value } |
+    ForEach-Object { $_ -replace ';', ' ' }
 
     # Clang's CXX compiler flags are in the common module.
     $pattern = "CMAKE_\$\{lang\}${ver}_EXTENSION_COMPILE_OPTION\s+`"?([^`")]+)"
 
     $result += (Get-Content "$cmake_source_dir\Modules\Compiler\Clang.cmake" -ErrorAction SilentlyContinue) |
-        Select-String $pattern |
-        ForEach-Object { $_.Matches[0].Groups[1].Value } |
-        ForEach-Object { $_ -replace ';', ' ' }
+    Select-String $pattern |
+    ForEach-Object { $_.Matches[0].Groups[1].Value } |
+    ForEach-Object { $_ -replace ';', ' ' }
 
     $result
 }
@@ -1041,7 +1047,8 @@ function cmake_try_run {
     # Account for empty flags
     if (-not [string]::IsNullOrWhiteSpace($FLAGS)) {
         $compiler_flags += ($FLAGS -split '\s+')
-    } else {
+    }
+    else {
         $compiler_flags = @()
     }
 
@@ -1074,32 +1081,44 @@ function cmake_try_run {
     return 0
 }
 
-# # Run a make test. First argument is the make interpreter.
-# cmake_try_make ()
-# {
-#   MAKE_PROC="$1"
-#   MAKE_FLAGS="$2"
-#   echo "Try: ${MAKE_PROC}"
-#   "${MAKE_PROC}" ${MAKE_FLAGS}
-#   RES=$?
-#   if test "${RES}" -ne "0"; then
-#     echo "${MAKE_PROC} does not work"
-#     return 1
-#   fi
-#   if test ! -f "test" && test ! -f "test.exe"; then
-#     echo "${COMPILER} does not produce output"
-#     return 2
-#   fi
-#   ./test
-#   RES=$?
-#   rm -f "test"
-#   if test "${RES}" -ne "0"; then
-#     echo "${MAKE_PROC} produces strange executable"
-#     return 3
-#   fi
-#   echo "${MAKE_PROC} works"
-#   return 0
-# }
+# Run a make test. First argument is the make interpreter.
+function cmake_try_make () {
+    param (
+        $MAKE_PROC,
+        $MAKE_FLAGS
+    )
+
+    # Account for empty flags
+    if (-not [string]::IsNullOrWhiteSpace($MAKE_FLAGS)) {
+        $make_flags += ($MAKE_FLAGS -split '\s+')
+    }
+    else {
+        $make_flags = @()
+    }
+
+    Write-Output "Try: ${MAKE_PROC}"
+    & ${MAKE_PROC} ${make_flags}
+    if (-not($?)) {
+        Write-Output "${MAKE_PROC} does not work"
+        return 1
+    }
+    
+    if ((-not(Test-Path "test")) -and (-not(Test-Path "test.exe"))) {
+        Write-Output "${COMPILER} does not produce output"
+        return 2
+    }
+
+    & ./test
+    RES=$?
+    Remove-Item -Force "test" -ErrorAction SilentlyContinue
+    if (-not(${RES})) {
+        Write-Output "${MAKE_PROC} produces strange executable"
+        return 3
+    }
+
+    Write-Output "${MAKE_PROC} works"
+    return 0
+}
 
 # If verbose, display some information about bootstrap
 if (${cmake_verbose}) {
@@ -1206,7 +1225,8 @@ if ("${cmake_bootstrap_generator}" -eq "Ninja") {
         "cmFortranLexer",
         "cmFortranParser"
     )
-} else {
+}
+else {
     $CMAKE_CXX_SOURCES += @(
         "cmDepends",
         "cmDependsC",
@@ -1246,7 +1266,7 @@ function cmake_toolchain_try {
     $tc_CC = Get-Variable -Name "cmake_toolchain_${tc}_CC" -ValueOnly
     'int main() { return 0; }' | Set-Content "${TMPFILE}.c" -Encoding utf8
     cmake_try_run "$tc_CC" "" "${TMPFILE}.c" | Out-File cmake_bootstrap.log
-    $tc_result_CC="$?"
+    $tc_result_CC = "$?"
     Remove-Item -Force "${TMPFILE}.c" -ErrorAction SilentlyContinue
     if (-not(${tc_result_CC})) {
         return 1
@@ -1255,7 +1275,7 @@ function cmake_toolchain_try {
     $tc_CXX = Get-Variable -Name "cmake_toolchain_${tc}_CXX" -ValueOnly
     'int main() { return 0; }' | Set-Content "${TMPFILE}.cpp" -Encoding utf8
     cmake_try_run "$tc_CC" "" "${TMPFILE}.cpp" | Out-File cmake_bootstrap.log
-    $tc_result_CXX="$?"
+    $tc_result_CXX = "$?"
     Remove-Item -Force "${TMPFILE}.cpp" -ErrorAction SilentlyContinue
     if (-not(${tc_result_CXX})) {
         return 1
@@ -1289,7 +1309,8 @@ $cmake_c_compiler = ""
 if ("${cmake_toolchain}" -ne "") {
     $varname = "cmake_toolchain_${cmake_toolchain}_CC"
     $cmake_c_compilers = (Get-Variable $varname).Value
-} else {
+}
+else {
     $cmake_c_compilers = "${CMAKE_KNOWN_C_COMPILERS}"
 }
 
@@ -1317,13 +1338,13 @@ int main(int argc, char* argv[])
     foreach ($std in @(11, 99, 90)) {
         $std_flags = cmake_extract_standard_flags "${cmake_toolchain}" "C" "${std}"
         $std_flags = $std_flags -split '\s+'
-        $std_flags = ,"" + $std_flags
+        $std_flags = , "" + $std_flags
         foreach ($std_flag in $std_flags) {
             "Checking whether '${test_compiler} ${cmake_c_flags} ${cmake_ld_flags} ${std_flag}' works." | Add-Content cmake_bootstrap.log
             cmake_try_run $test_compiler "$cmake_c_flags $cmake_ld_flags $std_flag" "${TMPFILE}.c" 2>&1 | Tee-Object -FilePath cmake_bootstrap.log -Append
             if ($LASTEXITCODE -eq 0) {
-                $script:cmake_c_compiler="${test_compiler}"
-                $script:cmake_c_flags="${cmake_c_flags} ${std_flag}"
+                $script:cmake_c_compiler = "${test_compiler}"
+                $script:cmake_c_flags = "${cmake_c_flags} ${std_flag}"
                 Remove-Item -Force "${TMPFILE}.c" -ErrorAction SilentlyContinue
                 return 0
             }
@@ -1336,7 +1357,8 @@ int main(int argc, char* argv[])
 
 if ("${CC}" -ne "") {
     cmake_c_compiler_try_set "${CC}"
-} else {
+}
+else {
     foreach ($compiler in ${cmake_c_compilers}) {
         if (cmake_c_compiler_try_set "${compiler}") {
             break
@@ -1363,7 +1385,8 @@ $cmake_cxx_compiler = ""
 if ("${cmake_toolchain}" -ne "") {
     $varname = "cmake_toolchain_${cmake_toolchain}_CXX"
     $cmake_cxx_compilers = (Get-Variable $varname).Value
-} else {
+}
+else {
     $cmake_cxx_compilers = "${CMAKE_KNOWN_CXX_COMPILERS}"
 }
 
@@ -1447,13 +1470,13 @@ int main()
     foreach ($std in @(17, 14, 11)) {
         $std_flags = cmake_extract_standard_flags "${cmake_toolchain}" "CXX" "${std}"
         $std_flags = $std_flags -split '\s+'
-        $std_flags = ,"" + $std_flags
+        $std_flags = , "" + $std_flags
         foreach ($std_flag in $std_flags) {
             "Checking whether '${test_compiler} ${cmake_cxx_flags} ${cmake_ld_flags} ${std_flag}' works." | Add-Content cmake_bootstrap.log
             cmake_try_run $test_compiler "$cmake_cxx_flags $cmake_ld_flags $std_flag" "${TMPFILE}.cxx" 2>&1 | Tee-Object -FilePath cmake_bootstrap.log -Append
             if ($LASTEXITCODE -eq 0) {
-                $script:cmake_cxx_compiler="${test_compiler}"
-                $script:cmake_cxx_flags="${cmake_cxx_flags} ${std_flag}"
+                $script:cmake_cxx_compiler = "${test_compiler}"
+                $script:cmake_cxx_flags = "${cmake_cxx_flags} ${std_flag}"
                 Remove-Item -Force "${TMPFILE}.cxx" -ErrorAction SilentlyContinue
                 return 0
             }
@@ -1466,7 +1489,8 @@ int main()
 
 if ("${CXX}" -ne "") {
     cmake_cxx_compiler_try_set "${CXX}"
-} else {
+}
+else {
     foreach ($compiler in ${cmake_cxx_compilers}) {
         if (cmake_cxx_compiler_try_set "${compiler}") {
             break
@@ -1512,6 +1536,98 @@ foreach ($feature in ${cmake_cxx_features}) {
     }
 }
 
-
 cmake_generate_file "${cmake_bootstrap_dir}\cmSTL.hxx" ""
 
+#-----------------------------------------------------------------------------
+# Test Make
+
+$cmake_make_processor = $null
+$cmake_make_flags = @()
+
+# If MAKE is set, use that for make processor, otherwise use list of known make
+if ($null -ne ${MAKE}) {
+    $cmake_make_processors = "$MAKE" -split '\s+'
+}
+elseif ("${cmake_bootstrap_generator}" -eq "Ninja") {
+    $cmake_make_processors = "${CMAKE_KNOWN_NINJA_PROCESSORS}" -split '\s+'
+}
+else {
+    $cmake_make_processors = "${CMAKE_KNOWN_MAKE_PROCESSORS}" -split '\s+'
+}
+
+$tab = "`t" # TODO: Maybe don't use this variable
+
+# Make sure the file doesn't exist (remove it if it does)
+$TMPFILE = "$(cmake_tmp_file)_dir"
+Remove-Item -Force "${cmake_bootstrap_dir}\${TMPFILE}" -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path "${cmake_bootstrap_dir}\${TMPFILE}"
+Set-Location "${cmake_bootstrap_dir}\${TMPFILE}"
+
+# CHECK: Dubble quotes ('")
+if ("${cmake_bootstrap_generator}" -eq "Ninja") {
+    Write-Output @"
+rule cc
+  command = ${cmake_c_compiler} ${cmake_ld_flags} ${cmake_c_flags} -o $out $in
+build test: cc test.c
+"@ | Set-Content "build.ninja" -Encoding utf8
+}
+else {
+    Write-Output @"
+test: test.c
+${tab}${cmake_c_compiler} ${cmake_ld_flags} ${cmake_c_flags} -o test test.c
+"@ | Set-Content "Makefile" -Encoding utf8
+}
+
+Write-Output @"
+#include <stdio.h>
+int main(){ printf("1%c", (char)0x0a); return 0; }
+"@ | Set-Content "test.c" -Encoding utf8
+$cmake_original_make_flags = "${cmake_make_flags}"
+if ("${cmake_parallel_make}" -ne "") {
+    $cmake_make_flags += "-j ${cmake_parallel_make}"
+}
+
+foreach ($a in ${cmake_make_processors}) {
+    $output = & cmake_try_make "${a}" "${cmake_make_flags}" 2>&1
+    $exit = $LASTEXITCODE
+    $output | Tee-Object -FilePath ..\cmake_bootstrap.log -Append | Out-Null
+    if ($null -eq ${cmake_make_processor} -and $exit -eq 0) {
+        $cmake_make_processor = "${a}"
+    }
+}
+
+$cmake_full_make_flags = ${cmake_make_flags}
+if ("${cmake_original_make_flags}" -ne "${cmake_make_flags}") {
+    if ($null -eq ${cmake_make_processor}) {
+        $cmake_make_flags = "${cmake_original_make_flags}"
+        foreach ($a in ${cmake_make_processors}) {
+            $output = & cmake_try_make "${a}" "${cmake_make_flags}" 2>&1
+            $exit = $LASTEXITCODE
+            $output | Tee-Object -FilePath ..\cmake_bootstrap.log -Append | Out-Null
+            if ($null -eq ${cmake_make_processor} -and $exit -eq 0) {
+                $cmake_make_processor = "${a}"
+            }
+        }
+    }
+}
+Set-Location "${cmake_bootstrap_dir}"
+
+if ("${cmake_bootstrap_generator}" -eq "Ninja") {
+    $mf_str = "Ninja"
+}
+else {
+    $mf_str = "Makefile"
+}
+
+if ($null -eq ${cmake_make_processor}) {
+    cmake_error 8 "Cannot find appropriate ${mf_str} processor on this system.
+Please specify one using environment variable MAKE."
+}
+
+Remove-Item -Force -Recurse "${cmake_bootstrap_dir}\${TMPFILE}" -ErrorAction SilentlyContinue
+Write-Output "${mf_str} processor on this system is: ${cmake_make_processor}"
+if ("${cmake_full_make_flags}" -ne "${cmake_make_flags}") {
+    Write-Output "---------------------------------------------"
+    Write-Output "${mf_str} processor ${cmake_make_processor} does not support parallel build"
+    Write-Output "---------------------------------------------"
+}
