@@ -1338,10 +1338,141 @@ if ("${CC}" -ne "") {
 }
 
 if ($cmake_c_compiler -eq "") {
-  cmake_error 6 "Cannot find appropriate C compiler on this system.
+    cmake_error 6 "Cannot find appropriate C compiler on this system.
 Please specify one using environment variable CC.
 See cmake_bootstrap.log for compilers attempted.
 "
 }
 
 Write-Output "C compiler on this system is: ${cmake_c_compiler} ${cmake_c_flags}"
+
+#-----------------------------------------------------------------------------
+# Test CXX compiler
+$cmake_cxx_compiler = "" 
+
+# On Mac OSX, CC is the same as cc, so make sure not to try CC as c++ compiler.
+
+# If CC is set, use that for compiler, otherwise use list of known compilers
+if ("${cmake_toolchain}" -ne "") {
+    $varname = "cmake_toolchain_${cmake_toolchain}_CXX"
+    $cmake_cxx_compilers = (Get-Variable $varname).Value
+} else {
+    $cmake_cxx_compilers = "${CMAKE_KNOWN_CXX_COMPILERS}"
+}
+
+# Check if C++ compiler works
+function cmake_cxx_compiler_try_set {
+    param (
+        $test_compiler
+    )
+
+    $TMPFILE = cmake_tmp_file
+    @"
+#include <iostream>
+#include <memory>
+#include <unordered_map>
+
+#if __cplusplus < 201103L
+#error "Compiler is not in a mode aware of C++11."
+#endif
+
+#if defined(__SUNPRO_CC) && __SUNPRO_CC < 0x5140
+#error "SunPro <= 5.13 mode not supported due to bug in move semantics."
+#endif
+
+#if __cplusplus > 201103L
+#include <iterator>
+int check_cxx14()
+{
+  int a[] = { 0, 1, 2 };
+  auto ai = std::cbegin(a);
+
+  int b[] = { 2, 1, 0 };
+  auto bi = std::cend(b);
+
+  return *ai + *(bi - 1);
+}
+#else
+int check_cxx14()
+{
+  return 0;
+}
+#endif
+
+#if (__cplusplus >= 201703L || defined(__INTEL_COMPILER) && defined(__cpp_deduction_guides))
+#include <optional>
+template <typename T,
+          typename std::invoke_result<decltype(&T::get), T>::type = nullptr>
+typename T::pointer get_ptr(T& item)
+{
+  return item.get();
+}
+
+int check_cxx17()
+{
+  // Intel compiler do not handle correctly 'decltype' inside 'invoke_result'
+  std::unique_ptr<int> u(new int(0));
+  get_ptr(u);
+  std::optional<int> oi = 0;
+  return oi.value();
+}
+#else
+int check_cxx17()
+{
+  return 0;
+}
+#endif
+
+class Class
+{
+public:
+  int Get() const { return this->Member; }
+private:
+  int Member = 1;
+};
+int main()
+{
+  auto const c = std::unique_ptr<Class>(new Class);
+  std::cout << c->Get() << check_cxx14() << check_cxx17() << std::endl;
+  return 0;
+}
+"@ | Set-Content "${TMPFILE}.cxx" -Encoding utf8
+    foreach ($std in @(17, 14, 11)) {
+        $std_flags = cmake_extract_standard_flags "${cmake_toolchain}" "CXX" "${std}"
+        $std_flags = $std_flags -split '\s+'
+        $std_flags = ,"" + $std_flags
+        foreach ($std_flag in $std_flags) {
+            "Checking whether '${test_compiler} ${cmake_cxx_flags} ${cmake_ld_flags} ${std_flag}' works." | Add-Content cmake_bootstrap.log
+            cmake_try_run $test_compiler @($cmake_cxx_flags, $cmake_ld_flags, $std_flag) "${TMPFILE}.cxx" 2>&1 | Tee-Object -FilePath cmake_bootstrap.log
+            if ($LASTEXITCODE -eq 0) {
+                $script:cmake_cxx_compiler="${test_compiler}"
+                $script:cmake_cxx_flags="${cmake_cxx_flags} ${std_flag}"
+                Remove-Item -Force "${TMPFILE}.cxx" -ErrorAction SilentlyContinue
+                return 0
+            }
+        }
+    }
+
+    Remove-Item -Force "${TMPFILE}.cxx" -ErrorAction SilentlyContinue
+    return 1
+}
+
+if ("${CXX}" -ne "") {
+    cmake_cxx_compiler_try_set "${CXX}"
+} else {
+    foreach ($compiler in ${cmake_cxx_compilers}) {
+        if (cmake_cxx_compiler_try_set "${compiler}") {
+            break
+        }
+    }
+}
+
+if ($cmake_cxx_compiler -eq "") {
+    cmake_error 7 "Cannot find a C++ compiler that supports both C++11 and the specified C++ flags.
+Please specify one using environment variable CXX.
+The C++ flags are '$cmake_cxx_flags'.
+They can be changed using the environment variable CXXFLAGS.
+See cmake_bootstrap.log for compilers attempted."
+}
+
+Write-Output "C++ compiler on this system is: ${cmake_cxx_compiler} ${cmake_cxx_flags}"
