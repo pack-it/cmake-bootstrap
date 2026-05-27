@@ -936,54 +936,67 @@ function cmake_extract_standard_flags {
 }
 
 # Replace KWSYS_NAMESPACE with cmsys
-# cmake_replace_string ()
-# {
-#   INFILE="$1"
-#   OUTFILE="$2"
-#   SEARCHFOR="$3"
-#   REPLACEWITH="$4"
-#   if test -f "${INFILE}"; then
-#     sed "s/\@${SEARCHFOR}\@/${REPLACEWITH}/g" "${INFILE}" > "${OUTFILE}${_tmp}"
-#     if test -f "${OUTFILE}${_tmp}"; then
-#       if "${_diff}" "${OUTFILE}" "${OUTFILE}${_tmp}" > /dev/null 2> /dev/null ; then
-#         #echo "Files are the same"
-#         rm -f "${OUTFILE}${_tmp}"
-#       else
-#         mv -f "${OUTFILE}${_tmp}" "${OUTFILE}"
-#       fi
-#     fi
-#   else
-#     cmake_error 1 "Cannot find file ${INFILE}"
-#   fi
-# }
+function cmake_replace_string {
+    param (
+        $INFILE,
+        $OUTFILE,
+        $SEARCHFOR,
+        $REPLACEWITH
+    )
 
-# cmake_kwsys_config_replace_string ()
-# {
-#   INFILE="$1"
-#   OUTFILE="$2"
-#   shift 2
-#   APPEND="$*"
-#   if test -f "${INFILE}"; then
-#     echo "${APPEND}" > "${OUTFILE}${_tmp}"
-#     sed "/./ {s/\@KWSYS_NAMESPACE\@/cmsys/g;
-#               s/@KWSYS_BUILD_SHARED@/${KWSYS_BUILD_SHARED}/g;
-#               s/@KWSYS_LFS_AVAILABLE@/${KWSYS_LFS_AVAILABLE}/g;
-#               s/@KWSYS_LFS_REQUESTED@/${KWSYS_LFS_REQUESTED}/g;
-#               s/@KWSYS_NAME_IS_KWSYS@/${KWSYS_NAME_IS_KWSYS}/g;
-#               s/@KWSYS_CXX_HAS_EXT_STDIO_FILEBUF_H@/${KWSYS_CXX_HAS_EXT_STDIO_FILEBUF_H}/g;
-#              }" "${INFILE}" >> "${OUTFILE}${_tmp}"
-#     if test -f "${OUTFILE}${_tmp}"; then
-#       if "${_diff}" "${OUTFILE}" "${OUTFILE}${_tmp}" > /dev/null 2> /dev/null ; then
-#         #echo "Files are the same"
-#         rm -f "${OUTFILE}${_tmp}"
-#       else
-#         mv -f "${OUTFILE}${_tmp}" "${OUTFILE}"
-#       fi
-#     fi
-#   else
-#     cmake_error 2 "Cannot find file ${INFILE}"
-#   fi
-# }
+    if (Test-Path "${INFILE}") {
+        (Get-Content $INFILE) -replace "@$SEARCHFOR@", $REPLACEWITH | Set-Content "${OUTFILE}${_tmp}"
+        if (Test-Path "${OUTFILE}${_tmp}") {
+            if (((Test-Path "${OUTFILE}") -and (Test-Path "${OUTFILE}${_tmp}")) -and -not (Compare-Object (Get-Content "${OUTFILE}") (Get-Content "${OUTFILE}${_tmp}"))) {
+                Remove-Item -Force "${OUTFILE}${_tmp}" -ErrorAction SilentlyContinue
+            }
+            else {
+                Move-Item -Force "${OUTFILE}${_tmp}" "${OUTFILE}"
+            }
+        }
+    }
+    else {
+        cmake_error 1 "Cannot find file ${INFILE}"
+    }
+}
+
+function cmake_kwsys_config_replace_string {
+    param (
+        [Parameter(Position = 0)]
+        $INFILE,
+
+        [Parameter(Position = 1)]
+        $OUTFILE,
+
+        [Parameter(ValueFromRemainingArguments = $true)]
+        $APPEND
+    )
+
+    if (Test-Path "${INFILE}") {
+        "${APPEND}" | Set-Content "${OUTFILE}${_tmp}" -Encoding utf8 
+        (Get-Content $INFILE) | ForEach-Object {
+            $line = $_
+            $line = $line -replace '@KWSYS_NAMESPACE@', 'cmsys'
+            $line = $line -replace '@KWSYS_BUILD_SHARED@', $KWSYS_BUILD_SHARED
+            $line = $line -replace '@KWSYS_LFS_AVAILABLE@', $KWSYS_LFS_AVAILABLE
+            $line = $line -replace '@KWSYS_LFS_REQUESTED@', $KWSYS_LFS_REQUESTED
+            $line = $line -replace '@KWSYS_NAME_IS_KWSYS@', $KWSYS_NAME_IS_KWSYS
+            $line = $line -replace '@KWSYS_CXX_HAS_EXT_STDIO_FILEBUF_H@', $KWSYS_CXX_HAS_EXT_STDIO_FILEBUF_H
+            $line
+        } | Add-Content "${OUTFILE}${_tmp}" -Encoding utf8
+        if (Test-Path "${OUTFILE}${_tmp}") {
+            if (((Test-Path "${OUTFILE}") -and (Test-Path "${OUTFILE}${_tmp}")) -and -not (Compare-Object (Get-Content "${OUTFILE}") (Get-Content "${OUTFILE}${_tmp}"))) {
+                Remove-Item -Force "${OUTFILE}${_tmp}" -ErrorAction SilentlyContinue
+            }
+            else {
+                Move-Item -Force "${OUTFILE}${_tmp}" "${OUTFILE}"
+            }
+        }
+    }
+    else {
+        cmake_error 2 "Cannot find file ${INFILE}"
+    }
+}
 
 # # Write string into a file
 function cmake_report {
@@ -1742,8 +1755,8 @@ cmake_report "cmVersionConfig.h${_tmp}" "#define CMake_VERSION_MAJOR ${cmake_ver
 cmake_report "cmVersionConfig.h${_tmp}" "#define CMake_VERSION_MINOR ${cmake_version_minor}"
 cmake_report "cmVersionConfig.h${_tmp}" "#define CMake_VERSION_PATCH ${cmake_version_patch}"
 cmake_report "cmVersionConfig.h${_tmp}" "#define CMake_VERSION `"${cmake_version}`""
-cmake_report "cmConfigure.h${_tmp}" "#define CMAKE_BOOTSTRAP_SOURCE_DIR `"${cmake_source_dir}`""
-cmake_report "cmConfigure.h${_tmp}" "#define CMAKE_BOOTSTRAP_BINARY_DIR `"${cmake_binary_dir}`""
+cmake_report "cmConfigure.h${_tmp}" "#define CMAKE_BOOTSTRAP_SOURCE_DIR `"$([regex]::Escape($cmake_source_dir))`""
+cmake_report "cmConfigure.h${_tmp}" "#define CMAKE_BOOTSTRAP_BINARY_DIR `"$([regex]::Escape($cmake_binary_dir))`""
 cmake_report "cmConfigure.h${_tmp}" "#define CMake_DEFAULT_RECURSION_LIMIT 400"
 cmake_report "cmConfigure.h${_tmp}" "#define CMAKE_BIN_DIR `"/bootstrap-not-installed`""
 cmake_report "cmConfigure.h${_tmp}" "#define CMAKE_DATA_DIR `"/bootstrap-not-installed`""
@@ -1772,3 +1785,27 @@ foreach ($h in @("Configure", "VersionConfig")) {
         Move-Item -Force "cm${h}.h${_tmp}" "cm${h}.h"
     }
 }
+
+# Prepare KWSYS
+# WIN_PATH DONE
+$cmsys_header_files = @("cmsys\Configure.h", "cmsys\Configure.hxx")
+cmake_kwsys_config_replace_string "${cmake_source_dir}\Source\kwsys\Configure.hxx.in" "${cmake_bootstrap_dir}\cmsys\Configure.hxx" "${cmake_compiler_settings_comment}"
+cmake_kwsys_config_replace_string "${cmake_source_dir}\Source\kwsys\Configure.h.in" "${cmake_bootstrap_dir}\cmsys\Configure.h" "${cmake_compiler_settings_comment}"
+
+# WIN_PATH DONE
+foreach ($a in ${KWSYS_FILES}) {
+    cmake_replace_string "${cmake_source_dir}\Source\kwsys\${a}.in" "${cmake_bootstrap_dir}\cmsys\${a}" "KWSYS_NAMESPACE" "cmsys"
+    $cmsys_header_files += "cmsys\${a}"
+}
+
+"#pragma once" | Add-Content "${cmake_bootstrap_dir}\cmThirdParty.h.tmp" -Encoding utf8
+if ($bootstrap_system_libuv) {
+    "#define CMAKE_USE_SYSTEM_LIBUV" | Add-Content "${cmake_bootstrap_dir}\cmThirdParty.h.tmp" -Encoding utf8
+}
+if ($bootstrap_system_jsoncpp) {
+    "#define CMAKE_USE_SYSTEM_JSONCPP" | Add-Content "${cmake_bootstrap_dir}\cmThirdParty.h.tmp" -Encoding utf8
+}
+if ($bootstrap_system_librhash) {
+    "#define CMAKE_USE_SYSTEM_LIBRHASH" | Add-Content "${cmake_bootstrap_dir}\cmThirdParty.h.tmp" -Encoding utf8
+}
+cmake_generate_file_tmp "${cmake_bootstrap_dir}\cmThirdParty.h" "${cmake_bootstrap_dir}\cmThirdParty.h.tmp"
