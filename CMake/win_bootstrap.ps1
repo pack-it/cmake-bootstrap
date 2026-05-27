@@ -1038,13 +1038,20 @@ function cmake_try_run {
         exit 4
     }
 
+    # Account for empty flags
+    if (-not [string]::IsNullOrWhiteSpace($FLAGS)) {
+        $compiler_flags += ($FLAGS -split '\s+')
+    } else {
+        $compiler_flags = @()
+    }
+
     $TMPFILE = cmake_tmp_file
     Write-Output "Try: ${COMPILER}"
-    Write-Output "Line: ${COMPILER} ${FLAGS} ${TESTFILE} -o ${TMPFILE}"
+    Write-Output "Line: ${COMPILER} ${compiler_flags} ${TESTFILE} -o ${TMPFILE}"
     Write-Output "----------  file   -----------------------"
     Get-Content "${TESTFILE}"
     Write-Output "------------------------------------------"
-    & $COMPILER $FLAGS $TESTFILE -o $TMPFILE
+    & $COMPILER $compiler_flags $TESTFILE -o $TMPFILE
     if (-not($?)) {
         Write-Output "Test failed to compile"
         return 1
@@ -1313,7 +1320,7 @@ int main(int argc, char* argv[])
         $std_flags = ,"" + $std_flags
         foreach ($std_flag in $std_flags) {
             "Checking whether '${test_compiler} ${cmake_c_flags} ${cmake_ld_flags} ${std_flag}' works." | Add-Content cmake_bootstrap.log
-            cmake_try_run $test_compiler @($cmake_c_flags, $cmake_ld_flags, $std_flag) "${TMPFILE}.c" 2>&1 | Tee-Object -FilePath cmake_bootstrap.log
+            cmake_try_run $test_compiler "$cmake_c_flags $cmake_ld_flags $std_flag" "${TMPFILE}.c" 2>&1 | Tee-Object -FilePath cmake_bootstrap.log -Append
             if ($LASTEXITCODE -eq 0) {
                 $script:cmake_c_compiler="${test_compiler}"
                 $script:cmake_c_flags="${cmake_c_flags} ${std_flag}"
@@ -1443,7 +1450,7 @@ int main()
         $std_flags = ,"" + $std_flags
         foreach ($std_flag in $std_flags) {
             "Checking whether '${test_compiler} ${cmake_cxx_flags} ${cmake_ld_flags} ${std_flag}' works." | Add-Content cmake_bootstrap.log
-            cmake_try_run $test_compiler @($cmake_cxx_flags, $cmake_ld_flags, $std_flag) "${TMPFILE}.cxx" 2>&1 | Tee-Object -FilePath cmake_bootstrap.log
+            cmake_try_run $test_compiler "$cmake_cxx_flags $cmake_ld_flags $std_flag" "${TMPFILE}.cxx" 2>&1 | Tee-Object -FilePath cmake_bootstrap.log -Append
             if ($LASTEXITCODE -eq 0) {
                 $script:cmake_cxx_compiler="${test_compiler}"
                 $script:cmake_cxx_flags="${cmake_cxx_flags} ${std_flag}"
@@ -1476,3 +1483,35 @@ See cmake_bootstrap.log for compilers attempted."
 }
 
 Write-Output "C++ compiler on this system is: ${cmake_cxx_compiler} ${cmake_cxx_flags}"
+
+#-----------------------------------------------------------------------------
+# Test CXX features
+
+$cmake_cxx_features = @("make_unique", "filesystem")
+
+foreach ($feature in ${cmake_cxx_features}) {
+    $varname = "cmake_have_cxx_${feature}"
+    Set-Variable -Name $varname -Value 0
+
+    "Checking whether '${cmake_cxx_compiler} ${cmake_cxx_flags} ${cmake_ld_flags}' supports '${feature}'." | Add-Content cmake_bootstrap.log
+    $output = & cmake_try_run "${cmake_cxx_compiler}" "${cmake_cxx_flags} ${cmake_ld_flags}" "${cmake_source_dir}\Source\Checks\cm_cxx_${feature}.cxx" 2>&1
+    $exit = $LASTEXITCODE
+    $output | Tee-Object -FilePath cmake_bootstrap.log -Append | Out-Null
+    if ($exit -eq 0) {
+        Set-Variable -Name $varname -Value 1
+    }
+}
+
+$cmake_have_cxx_features = ""
+foreach ($feature in ${cmake_cxx_features}) {
+    $varname = "cmake_have_cxx_${feature}"
+    $feature_value = (Get-Variable $varname).Value
+    if ("${feature_value}" -eq "1") {
+        $new_feature = "-DCMake_HAVE_CXX_$($feature.ToUpper())=${feature_value}"
+        $cmake_have_cxx_features += $new_feature
+    }
+}
+
+
+cmake_generate_file "${cmake_bootstrap_dir}\cmSTL.hxx" ""
+
