@@ -241,7 +241,6 @@ if (-not [string]::IsNullOrEmpty($PROGRAMFILES)) {
 }
 elseif (-not [string]::IsNullOrEmpty($ProgramFiles)) {
     $cmake_default_prefix = "${ProgramFiles}\CMake"`
-
 }
 elseif (-not [string]::IsNullOrEmpty($SYSTEMDRIVE)) {
     $cmake_default_prefix = "${SYSTEMDRIVE}\Program Files\CMake"
@@ -1038,7 +1037,15 @@ function cmake_obj {
         $in_obj
     )
     
-    ($in_obj -replace '/', '-') + '.o'
+    ($in_obj -replace '\\', '-' -replace '\.[^.]+$', '.o')
+}
+
+function to_cmake_path {
+    param (
+        $windows_path
+    )
+
+    ($windows_path -replace '\\', '/')
 }
 
 # REMOVED: Strip prefix from argument
@@ -1084,7 +1091,7 @@ function cmake_try_run {
     Write-Output "----------  file   -----------------------"
     Get-Content "${TESTFILE}"
     Write-Output "------------------------------------------"
-    & $COMPILER $compiler_flags $TESTFILE -o $TMPFILE
+    & $COMPILER @compiler_flags $TESTFILE -o $TMPFILE
     if (-not($?)) {
         Write-Output "Test failed to compile"
         return 1
@@ -1123,7 +1130,7 @@ function cmake_try_make () {
     }
 
     Write-Output "Try: ${MAKE_PROC}"
-    & ${MAKE_PROC} ${make_flags}
+    & ${MAKE_PROC} @make_flags
     if (-not($?)) {
         Write-Output "${MAKE_PROC} does not work"
         return 1
@@ -1134,7 +1141,7 @@ function cmake_try_make () {
         return 2
     }
 
-    & ./test
+    & .\test
     RES=$?
     Remove-Item -Force "test" -ErrorAction SilentlyContinue
     if (-not(${RES})) {
@@ -1544,7 +1551,7 @@ foreach ($feature in ${cmake_cxx_features}) {
     Set-Variable -Name $varname -Value 0
 
     "Checking whether '${cmake_cxx_compiler} ${cmake_cxx_flags} ${cmake_ld_flags}' supports '${feature}'." | Add-Content cmake_bootstrap.log
-    $output = & cmake_try_run "${cmake_cxx_compiler}" "${cmake_cxx_flags} ${cmake_ld_flags}" "${cmake_source_dir}\Source\Checks\cm_cxx_${feature}.cxx" 2>&1
+    $output = & cmake_try_run "${cmake_cxx_compiler}" @cmake_cxx_flags @cmake_ld_flags "${cmake_source_dir}\Source\Checks\cm_cxx_${feature}.cxx" 2>&1
     $exit = $LASTEXITCODE
     $output | Tee-Object -FilePath cmake_bootstrap.log -Append | Out-Null
     if ($exit -eq 0) {
@@ -1552,7 +1559,7 @@ foreach ($feature in ${cmake_cxx_features}) {
     }
 }
 
-$cmake_have_cxx_features = ""
+$cmake_have_cxx_features = @()
 foreach ($feature in ${cmake_cxx_features}) {
     $varname = "cmake_have_cxx_${feature}"
     $feature_value = (Get-Variable $varname).Value
@@ -1613,7 +1620,7 @@ if ("${cmake_parallel_make}" -ne "") {
 }
 
 foreach ($a in ${cmake_make_processors}) {
-    $output = & cmake_try_make "${a}" "${cmake_make_flags}" 2>&1
+    $output = & cmake_try_make "${a}" @cmake_make_flags 2>&1
     $exit = $LASTEXITCODE
     $output | Tee-Object -FilePath ..\cmake_bootstrap.log -Append | Out-Null
     if ($null -eq ${cmake_make_processor} -and $exit -eq 0) {
@@ -1626,7 +1633,7 @@ if ("${cmake_original_make_flags}" -ne "${cmake_make_flags}") {
     if ($null -eq ${cmake_make_processor}) {
         $cmake_make_flags = "${cmake_original_make_flags}"
         foreach ($a in ${cmake_make_processors}) {
-            $output = & cmake_try_make "${a}" "${cmake_make_flags}" 2>&1
+            $output = & cmake_try_make "${a}" @cmake_make_flags 2>&1
             $exit = $LASTEXITCODE
             $output | Tee-Object -FilePath ..\cmake_bootstrap.log -Append | Out-Null
             if ($null -eq ${cmake_make_processor} -and $exit -eq 0) {
@@ -1670,7 +1677,7 @@ $KWSYS_CXX_HAS_UTIMENSAT = $false
 $KWSYS_CXX_HAS_UTIMES = $false
 
 # TODO: look if there is a better way to pipe output then do these "output, exit, output" blocks
-$output = & cmake_try_run "${cmake_cxx_compiler}" "${cmake_cxx_flags} ${cmake_ld_flags} -DTEST_KWSYS_CXX_HAS_SETENV" "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" 2>&1
+$output = & cmake_try_run "${cmake_cxx_compiler}" @cmake_cxx_flags@ @cmake_ld_flags -DTEST_KWSYS_CXX_HAS_SETENV "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" 2>&1
 $exit = $LASTEXITCODE
 $output | Tee-Object -FilePath cmake_bootstrap.log -Append | Out-Null
 if ($exit -eq 0) {
@@ -1681,7 +1688,7 @@ else {
     Write-Output "${cmake_cxx_compiler} does not have setenv"
 }
 
-$output = & cmake_try_run "${cmake_cxx_compiler}" "${cmake_cxx_flags} ${cmake_ld_flags} -DTEST_KWSYS_CXX_HAS_UNSETENV" "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" 2>&1
+$output = & cmake_try_run "${cmake_cxx_compiler}" @cmake_cxx_flags @cmake_ld_flags -DTEST_KWSYS_CXX_HAS_UNSETENV "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" 2>&1
 $exit = $LASTEXITCODE
 $output | Tee-Object -FilePath cmake_bootstrap.log -Append | Out-Null
 if ($exit -eq 0) {
@@ -1692,7 +1699,7 @@ else {
     Write-Output "${cmake_cxx_compiler} does not have unsetenv"
 }
 
-$output = & cmake_try_run "${cmake_cxx_compiler}" "${cmake_cxx_flags} ${cmake_ld_flags} -DTEST_KWSYS_CXX_HAS_ENVIRON_IN_STDLIB_H" "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" 2>&1
+$output = & cmake_try_run "${cmake_cxx_compiler}" @cmake_cxx_flags @cmake_ld_flags -DTEST_KWSYS_CXX_HAS_ENVIRON_IN_STDLIB_H "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" 2>&1
 $exit = $LASTEXITCODE
 $output | Tee-Object -FilePath cmake_bootstrap.log -Append | Out-Null
 if ($exit -eq 0) {
@@ -1703,7 +1710,7 @@ else {
     Write-Output "${cmake_cxx_compiler} does not have environ in stdlib.h"
 }
 
-$output = & cmake_try_run "${cmake_cxx_compiler}" "${cmake_cxx_flags} ${cmake_ld_flags} -DTEST_KWSYS_CXX_HAS_EXT_STDIO_FILEBUF_H" "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" 2>&1
+$output = & cmake_try_run "${cmake_cxx_compiler}" @cmake_cxx_flags @cmake_ld_flags -DTEST_KWSYS_CXX_HAS_EXT_STDIO_FILEBUF_H "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" 2>&1
 $exit = $LASTEXITCODE
 $output | Tee-Object -FilePath cmake_bootstrap.log -Append | Out-Null
 if ($exit -eq 0) {
@@ -1725,7 +1732,7 @@ if ($cmake_ccache_enabled) {
 # TODO: This revision resolution doesn't work
 $cmake_bootstrap_version = '$Revision$'
 $cmake_compiler_settings_comment = "/*
- * Generated by ${cmake_source_dir}/bootstrap
+ * Generated by ${cmake_source_dir}\bootstrap
  * Version:     ${cmake_bootstrap_version}
  *
  * Source directory: ${cmake_source_dir}
@@ -1763,8 +1770,8 @@ cmake_report "cmVersionConfig.h${_tmp}" "#define CMake_VERSION_MAJOR ${cmake_ver
 cmake_report "cmVersionConfig.h${_tmp}" "#define CMake_VERSION_MINOR ${cmake_version_minor}"
 cmake_report "cmVersionConfig.h${_tmp}" "#define CMake_VERSION_PATCH ${cmake_version_patch}"
 cmake_report "cmVersionConfig.h${_tmp}" "#define CMake_VERSION `"${cmake_version}`""
-cmake_report "cmConfigure.h${_tmp}" "#define CMAKE_BOOTSTRAP_SOURCE_DIR `"$([regex]::Escape($cmake_source_dir))`""
-cmake_report "cmConfigure.h${_tmp}" "#define CMAKE_BOOTSTRAP_BINARY_DIR `"$([regex]::Escape($cmake_binary_dir))`""
+cmake_report "cmConfigure.h${_tmp}" "#define CMAKE_BOOTSTRAP_SOURCE_DIR `"$(to_cmake_path $cmake_source_dir)`""
+cmake_report "cmConfigure.h${_tmp}" "#define CMAKE_BOOTSTRAP_BINARY_DIR `"$(to_cmake_path $cmake_binary_dir)`""
 cmake_report "cmConfigure.h${_tmp}" "#define CMake_DEFAULT_RECURSION_LIMIT 400"
 cmake_report "cmConfigure.h${_tmp}" "#define CMAKE_BIN_DIR `"/bootstrap-not-installed`""
 cmake_report "cmConfigure.h${_tmp}" "#define CMAKE_DATA_DIR `"/bootstrap-not-installed`""
@@ -1840,19 +1847,19 @@ foreach ($a in ${CMAKE_CXX_SOURCES} + ${CMAKE_C_SOURCES} + ${CMAKE_STD_CXX_SOURC
     $objs += "${a}.o"
 }
 
-if ($bootstrap_system_libuv) {
+if (-not $bootstrap_system_libuv) {
     foreach ($a in ${LIBUV_C_SOURCES}) {
         $objs += "uv-$(cmake_obj ${a})"
     }
 }
 
-if ($bootstrap_system_librhash) {
+if (-not $bootstrap_system_librhash) {
     foreach ($a in ${LIBRHASH_C_SOURCES}) {
         $objs += "rhash-$(cmake_obj ${a})"
     }
 }
 
-if ($bootstrap_system_jsoncpp) {
+if (-not $bootstrap_system_jsoncpp) {
     foreach ($a in ${JSONCPP_CXX_SOURCES}) {
         $objs += "jsoncpp-$(cmake_obj ${a})"
     }
@@ -1861,7 +1868,7 @@ if ($bootstrap_system_jsoncpp) {
 # WIN_PATH DONE
 $uv_c_flags = @("-DWIN32_LEAN_AND_MEAN", "-D_WIN32_WINNT=0x0600")
 $libs = @("-ladvapi32", "-ldbghelp", "-liphlpapi", "-lole32", "-loleaut32", "-lpsapi", "-lshell32", "-luser32", "-luserenv", "-luuid", "-lws2_32")
-if ($bootstrap_system_libuv) {
+if (-not $bootstrap_system_libuv) {
     $uv_c_flags += "-I${cmake_source_dir}\Utilities\cmlibuv\include"
     $uv_c_flags += "-I${cmake_source_dir}\Utilities\cmlibuv\src\win"
     $uv_c_flags += "-I${cmake_source_dir}\Utilities\cmlibuv\src"
@@ -1896,7 +1903,7 @@ if ($bootstrap_system_librhash) {
 }
 
 $jsoncpp_cxx_flags = @()
-if ($bootstrap_system_jsoncpp) {
+if (-not $bootstrap_system_jsoncpp) {
     # WIN_PATH DONE
     $jsoncpp_cxx_flags += "-I${cmake_source_dir}\Utilities\cmjsoncpp\include"
 }
@@ -1912,6 +1919,8 @@ else {
     
     $libs += ${use_jsoncpp_ldflags}
 }
+
+# REMOVED system flags, because only necessary for Linux
 
 function write_source_rule {
     param (
@@ -1993,7 +2002,7 @@ if ("${cmake_bootstrap_generator}" -eq "Ninja") {
     "  libs = ${libs}" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
 }
 else {
-    "cmake: ${objs}" | Add-Content "${cmake_bootstrap_dir}\Makefile" -Encoding ascii
+    "cmake: ${objs}" | Set-Content "${cmake_bootstrap_dir}\Makefile" -Encoding ascii # TODO: CHECK Set-Content
     "${tab}${cmake_cxx_compiler} ${cmake_ld_flags} ${cmake_cxx_flags} ${objs} ${libs} -o cmake" | Add-Content "${cmake_bootstrap_dir}\Makefile" -Encoding ascii
 }
 
@@ -2057,7 +2066,7 @@ foreach ($a in ${KWSYS_CXX_SOURCES}) {
 }
 
 # WIN_PATH DONE
-if ($bootstrap_system_libuv) {
+if (-not $bootstrap_system_libuv) {
     foreach ($a in ${LIBUV_C_SOURCES}) {
         $src_path = "${cmake_source_dir}\Utilities\cmlibuv\${a}"
         $src = cmake_escape_artifact ${src_path}
@@ -2066,7 +2075,7 @@ if ($bootstrap_system_libuv) {
 }
 
 # WIN_PATH DONE
-if ($bootstrap_system_librhash) {
+if (-not $bootstrap_system_librhash) {
     foreach ($a in ${LIBRHASH_C_SOURCES}) {
         $src_path = "${cmake_source_dir}\Utilities\cmlibrhash\${a}"
         $src = cmake_escape_artifact ${src_path}
@@ -2075,10 +2084,167 @@ if ($bootstrap_system_librhash) {
 }
 
 # WIN_PATH DONE
-if ($bootstrap_system_jsoncpp) {
+if (-not $bootstrap_system_jsoncpp) {
     foreach ($a in ${JSONCPP_CXX_SOURCES}) {
         $src_path = "${cmake_source_dir}\Utilities\cmjsoncpp\${a}"
         $src = cmake_escape_artifact ${src_path}
         write_source_rule "cxx" "jsoncpp-$(cmake_obj ${a})" "${src}" "${jsoncpp_cxx_flags}"
     }
 }
+
+if ("${cmake_bootstrap_generator}" -eq "Ninja") {
+    @"
+rule rebuild_cache
+  command = cd "${cmake_binary_dir}" && "${cmake_source_dir}\bootstrap" --generator="${cmake_bootstrap_generator}"
+  generator = 1
+build build.ninja : rebuild_cache
+"@ | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
+}
+else {
+    # WIN_PATH DONE
+    @"
+rebuild_cache:
+${tab}cd "${cmake_binary_dir}" && "${cmake_source_dir}\bootstrap" --generator="${cmake_bootstrap_generator}"
+"@ | Add-Content "${cmake_bootstrap_dir}\Makefile" -Encoding ascii
+}
+
+# Write our default settings to Bootstrap${_cmk}\InitialCacheFlags.cmake.
+@"
+# Generated by "$(to_cmake_path ${cmake_source_dir})"/bootstrap
+# Default cmake settings.  These may be overridden any settings below.
+set (CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build.") # not FORCE to preserve defaults specified elsewhere
+set (CMAKE_INSTALL_PREFIX "$(to_cmake_path ${cmake_prefix_dir})" CACHE PATH "Install path prefix, prepended onto install directories." FORCE)
+set (CMAKE_DOC_DIR "$(to_cmake_path ${cmake_doc_dir})" CACHE PATH "Install location for documentation (relative to prefix)." FORCE)
+set (CMAKE_MAN_DIR "$(to_cmake_path ${cmake_man_dir})" CACHE PATH "Install location for man pages (relative to prefix)." FORCE)
+set (CMAKE_BIN_DIR "$(to_cmake_path ${cmake_bin_dir})" CACHE PATH "Install location for binaries (relative to prefix)." FORCE)
+set (CMAKE_DATA_DIR "$(to_cmake_path ${cmake_data_dir})" CACHE PATH "Install location for data (relative to prefix)." FORCE)
+set (CMAKE_XDGDATA_DIR "$(to_cmake_path ${cmake_xdgdata_dir})" CACHE PATH "Install location for XDG specific files (relative to prefix)." FORCE)
+"@ | Set-Content "${cmake_bootstrap_dir}\InitialCacheFlags.cmake" -Encoding ascii
+
+
+# Add configuration settings given as command-line options.
+# TODO: Fix this by using the same is above (for initial cache flags)
+if ($cmake_bootstrap_qt_gui) {
+    @"
+set (BUILD_QtDialog '"${cmake_bootstrap_qt_gui}"' CACHE BOOL "Build Qt dialog for CMake" FORCE)
+"@ | Add-Content "${cmake_bootstrap_dir}\InitialCacheFlags.cmake" -Encoding ascii
+}
+
+if ($cmake_bootstrap_qt_qmake) {
+    @"
+set (QT_QMAKE_EXECUTABLE "'"${cmake_bootstrap_qt_qmake}"'" CACHE FILEPATH "Location of Qt qmake" FORCE)
+"@ | Add-Content "${cmake_bootstrap_dir}\InitialCacheFlags.cmake" -Encoding ascii
+}
+
+if ($cmake_bootstrap_debugger) {
+    @"
+set (CMake_ENABLE_DEBUGGER '"${cmake_bootstrap_debugger}"' CACHE BOOL "Enable CMake debugger support" FORCE)
+"@ | Add-Content "${cmake_bootstrap_dir}\InitialCacheFlags.cmake" -Encoding ascii
+}
+
+if ($cmake_sphinx_info) {
+    @"
+set (SPHINX_INFO "'"${cmake_sphinx_info}"'" CACHE BOOL "Build Info manual with Sphinx" FORCE)
+"@ | Add-Content "${cmake_bootstrap_dir}\InitialCacheFlags.cmake" -Encoding ascii
+}
+
+if ($cmake_sphinx_man) {
+    @"
+set (SPHINX_MAN "'"${cmake_sphinx_man}"'" CACHE BOOL "Build man pages with Sphinx" FORCE)
+"@ | Add-Content "${cmake_bootstrap_dir}\InitialCacheFlags.cmake" -Encoding ascii
+}
+
+if ($cmake_sphinx_html) {
+    @"
+set (SPHINX_HTML "'"${cmake_sphinx_html}"'" CACHE BOOL "Build html help with Sphinx" FORCE)
+"@ | Add-Content "${cmake_bootstrap_dir}\InitialCacheFlags.cmake" -Encoding ascii
+}
+
+if ($cmake_sphinx_qthelp) {
+    @"
+set (SPHINX_QTHELP "'"${cmake_sphinx_qthelp}"'" CACHE BOOL "Build qch help with Sphinx" FORCE)
+"@ | Add-Content "${cmake_bootstrap_dir}\InitialCacheFlags.cmake" -Encoding ascii
+}
+
+if ($cmake_sphinx_latexpdf) {
+    @"
+set (SPHINX_LATEXPDF "'"${cmake_sphinx_latexpdf}"'" CACHE BOOL "Build PDF help with Sphinx using LaTeX" FORCE)
+"@ | Add-Content "${cmake_bootstrap_dir}\InitialCacheFlags.cmake" -Encoding ascii
+}
+
+if ($cmake_sphinx_build) {
+    @"
+set (SPHINX_EXECUTABLE "'"${cmake_sphinx_build}"'" CACHE FILEPATH "Location of Qt sphinx-build" FORCE)
+"@ | Add-Content "${cmake_bootstrap_dir}\InitialCacheFlags.cmake" -Encoding ascii
+}
+
+if ($cmake_sphinx_flags) {
+    @"
+set (SPHINX_FLAGS [==['"${cmake_sphinx_flags}"']==] CACHE STRING "Flags to pass to sphinx-build" FORCE)
+"@ | Add-Content "${cmake_bootstrap_dir}\InitialCacheFlags.cmake" -Encoding ascii
+}
+
+# Add user-specified settings.  Handle relative-path case for
+# specification of cmake_init_file.
+Push-Location "${cmake_binary_dir}"
+if (("${cmake_init_file}" -ne "") -and (Test-Path "${cmake_init_file}")) {
+    "${cmake_init_file}" | Add-Content "${cmake_bootstrap_dir}\InitialCacheFlags.cmake" -Encoding ascii
+}
+Pop-Location
+
+
+Write-Output "---------------------------------------------"
+
+# Run make to build bootstrap cmake
+if ("${cmake_bootstrap_generator}" -eq "Ninja") {
+    $ninja_v = "-v"
+}
+else {
+    $ninja_v = ""
+}
+
+if ("${cmake_parallel_make}" -ne "") {
+    & ${cmake_make_processor} @cmake_make_flags ${ninja_v}
+}
+else {
+    & ${cmake_make_processor} ${ninja_v}
+}
+
+$RES=$?
+if (-not ${RES}) {
+    cmake_error 9 "Problem while running ${cmake_make_processor}"
+}
+Set-Location "${cmake_binary_dir}"
+
+# Set C, CXX, and MAKE environment variables, so that real real cmake will be
+# build with same compiler and make
+$CC = "${cmake_c_compiler}"
+$CXX = "${cmake_cxx_compiler}"
+$MAKE = "${cmake_make_processor}"
+$env:CC = $CC
+$env:CXX = $CXX
+$env:MAKE = $MAKE
+$env:CFLAGS = $CFLAGS
+$env:CXXFLAGS = $CXXFLAGS
+$env:LDFLAGS = $LDFLAGS
+
+# Run bootstrap CMake to configure real CMake
+$cmake_options = @("-DCMAKE_BOOTSTRAP=1")
+if ($cmake_verbose) {
+    $cmake_options += "-DCMAKE_VERBOSE_MAKEFILE=1"
+}
+
+# Change Windows paths to unix like paths for CMake call
+$unix_cmake_bootstrap_dir = to_cmake_path $cmake_bootstrap_dir
+$unix_cmake_source_dir = to_cmake_path $cmake_source_dir
+Write-Host "${unix_cmake_bootstrap_dir}/cmake" "${unix_cmake_source_dir}" "-C" "${unix_cmake_bootstrap_dir}/InitialCacheFlags.cmake" "-G" "${cmake_bootstrap_generator}" @cmake_options @cmake_bootstrap_system_libs @args
+& "${unix_cmake_bootstrap_dir}/cmake" "${unix_cmake_source_dir}" "-C" "${unix_cmake_bootstrap_dir}/InitialCacheFlags.cmake" "-G" "${cmake_bootstrap_generator}" @cmake_options @cmake_bootstrap_system_libs @args
+$RES=$?
+if (-not ${RES}) {
+    cmake_error 11 "Problem while running initial CMake"
+}
+
+Write-Output "---------------------------------------------"
+
+# And we are done. Now just run make
+Write-Output "CMake has bootstrapped. Now run ${cmake_make_processor}."
