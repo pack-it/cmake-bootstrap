@@ -1,0 +1,32 @@
+diff --git a/Source/cmake.cxx b/Source/cmake.cxx
+index 3a277f4e1b..ada16409d4 100644
+--- a/Source/cmake.cxx
++++ b/Source/cmake.cxx
+@@ -99,13 +99,13 @@
+ 
+ // include the generator
+ #if defined(_WIN32) && !defined(__CYGWIN__)
++#  include "cmGlobalNMakeMakefileGenerator.h"
+ #  if !defined(CMAKE_BOOT_MINGW)
+ #    include <cmext/memory>
+ 
+ #    include "cmGlobalBorlandMakefileGenerator.h"
+ #    include "cmGlobalFastbuildGenerator.h"
+ #    include "cmGlobalJOMMakefileGenerator.h"
+-#    include "cmGlobalNMakeMakefileGenerator.h"
+ #    include "cmGlobalVisualStudio14Generator.h"
+ #    include "cmGlobalVisualStudioVersionedGenerator.h"
+ #    include "cmVSSetupHelper.h"
+@@ -3390,11 +3390,11 @@ void cmake::AddDefaultGenerators()
+     cmGlobalVisualStudioVersionedGenerator::NewFactory15());
+   this->Generators.push_back(cmGlobalVisualStudio14Generator::NewFactory());
+   this->Generators.push_back(cmGlobalBorlandMakefileGenerator::NewFactory());
+-  this->Generators.push_back(cmGlobalNMakeMakefileGenerator::NewFactory());
+   this->Generators.push_back(cmGlobalJOMMakefileGenerator::NewFactory());
+ #  endif
+   this->Generators.push_back(cmGlobalMSYSMakefileGenerator::NewFactory());
+   this->Generators.push_back(cmGlobalMinGWMakefileGenerator::NewFactory());
++  this->Generators.push_back(cmGlobalNMakeMakefileGenerator::NewFactory());
+ #endif
+ #if !defined(CMAKE_BOOTSTRAP)
+ #  if (defined(__linux__) && !defined(__ANDROID__)) || defined(_WIN32)

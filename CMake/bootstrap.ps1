@@ -261,7 +261,7 @@ if ("" -eq $cmake_prefix_dir) {
 # Bootstrapping from an MSYS prompt.
 # CHANGE_COMPILER
 if ("" -eq $cmake_bootstrap_generator) {
-    $cmake_bootstrap_generator = "MSYS Makefiles"
+    $cmake_bootstrap_generator = "NMake Makefiles"
 }
 
 function cmake_version_component {
@@ -464,14 +464,14 @@ if ($show_version) {
     exit 2
 }
 
-if ($cmake_bootstrap_generator -notin @("MSYS Makefiles", "Ninja")) {
+if ($cmake_bootstrap_generator -notin @("NMake Makefiles", "Ninja")) {
     cmake_error 10 "Invalid generator: ${cmake_bootstrap_generator}"
 }
 
 # ------------------------------- CMake compilers, processors, files and flags -------------------------------
 $CMAKE_KNOWN_C_COMPILERS = @("cc", "gcc", "clang", "xlc", "icx", "tcc")
 $CMAKE_KNOWN_CXX_COMPILERS = @("aCC", "xlC", "CC", "g++", "clang++", "c++", "icpx")
-$CMAKE_KNOWN_MAKE_PROCESSORS = @("gmake", "make", "smake")
+$CMAKE_KNOWN_MAKE_PROCESSORS = @("nmake")
 $CMAKE_KNOWN_NINJA_PROCESSORS = @("ninja-build", "ninja", "samu")
 
 $CMAKE_PROBLEMATIC_FILES = @(
@@ -491,6 +491,7 @@ $CMAKE_PROBLEMATIC_FILES = @(
     "Utilities\cmnghttp2\config.h"
 )
 
+# TODO: This is never used
 $CMAKE_UNUSED_SOURCES = @(
     "cmGlobalXCodeGenerator",
     "cmLocalXCodeGenerator",
@@ -760,6 +761,13 @@ $CMAKE_CXX_SOURCES = @(
     "cm_fileno",
     "cmGlobalMSYSMakefileGenerator",
     "cmGlobalMinGWMakefileGenerator",
+    # "cmGlobalBorlandMakefileGenerator",
+    # "cmGlobalFastbuildGenerator",
+    # "cmGlobalJOMMakefileGenerator",
+    "cmGlobalNMakeMakefileGenerator",
+    # "cmGlobalVisualStudio14Generator",
+    # "cmGlobalVisualStudioVersionedGenerator",
+    # "cmVSSetupHelper",
     "cmVSSetupHelper"
 )
 
@@ -1650,6 +1658,8 @@ if ("${cmake_bootstrap_generator}" -eq "Ninja") {
 else {
     $mf_str = "Makefile"
 }
+
+Write-Host ${cmake_make_processor}
 
 if ($null -eq ${cmake_make_processor}) {
     cmake_error 8 "Cannot find appropriate ${mf_str} processor on this system.
