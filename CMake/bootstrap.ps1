@@ -469,8 +469,8 @@ if ($cmake_bootstrap_generator -notin @("NMake Makefiles", "Ninja")) {
 }
 
 # ------------------------------- CMake compilers, processors, files and flags -------------------------------
-$CMAKE_KNOWN_C_COMPILERS = @("cc", "gcc", "clang", "xlc", "icx", "tcc")
-$CMAKE_KNOWN_CXX_COMPILERS = @("aCC", "xlC", "CC", "g++", "clang++", "c++", "icpx")
+$CMAKE_KNOWN_C_COMPILERS = @("cl")
+$CMAKE_KNOWN_CXX_COMPILERS = @("cl")
 $CMAKE_KNOWN_MAKE_PROCESSORS = @("nmake")
 $CMAKE_KNOWN_NINJA_PROCESSORS = @("ninja-build", "ninja", "samu")
 
@@ -929,15 +929,8 @@ function cmake_extract_standard_flags {
     $result += (Get-Content "$cmake_source_dir\Modules\Compiler\$id-$lang.cmake" -ErrorAction SilentlyContinue) |
     Select-String $pattern |
     ForEach-Object { $_.Matches[0].Groups[1].Value } |
-    ForEach-Object { $_ -replace ';', ' ' }
-
-    # Clang's CXX compiler flags are in the common module.
-    $pattern = "CMAKE_\$\{lang\}${ver}_EXTENSION_COMPILE_OPTION\s+`"?([^`")]+)"
-
-    $result += (Get-Content "$cmake_source_dir\Modules\Compiler\Clang.cmake" -ErrorAction SilentlyContinue) |
-    Select-String $pattern |
-    ForEach-Object { $_.Matches[0].Groups[1].Value } |
-    ForEach-Object { $_ -replace ';', ' ' }
+    ForEach-Object { $_ -replace ';', ' ' } |
+    ForEach-Object { $_ -replace '-', '/' } # TODO: Change this to only replace the first '-' not all 
 
     $result
 }
@@ -1045,7 +1038,7 @@ function cmake_obj {
         $in_obj
     )
     
-    ($in_obj -replace '\\', '-' -replace '\.[^.]+$', '.o')
+    ($in_obj -replace '\\', '-' -replace '\.[^.]+$', '.obj')
 }
 
 function to_cmake_path {
@@ -1095,11 +1088,11 @@ function cmake_try_run {
 
     $TMPFILE = cmake_tmp_file
     Write-Output "Try: ${COMPILER}"
-    Write-Output "Line: ${COMPILER} ${compiler_flags} ${TESTFILE} -o ${TMPFILE}"
+    Write-Output "Line: ${COMPILER} ${compiler_flags} ${TESTFILE} /Fe:${TMPFILE}"
     Write-Output "----------  file   -----------------------"
     Get-Content "${TESTFILE}"
     Write-Output "------------------------------------------"
-    & $COMPILER @compiler_flags $TESTFILE -o $TMPFILE
+    & $COMPILER @compiler_flags $TESTFILE "/Fe:$TMPFILE"
     if (-not($?)) {
         Write-Output "Test failed to compile"
         return 1
@@ -1149,8 +1142,8 @@ function cmake_try_make () {
         return 2
     }
 
-    & .\test
-    RES=$?
+    & .\test.exe
+    $RES=$?
     Remove-Item -Force "test" -ErrorAction SilentlyContinue
     if (-not(${RES})) {
         Write-Output "${MAKE_PROC} produces strange executable"
@@ -1284,19 +1277,11 @@ else {
 
 #-----------------------------------------------------------------------------
 # Set known toolchains on MinGW.
-$cmake_toolchains = @("GNU")
+$cmake_toolchains = @("MSVC")
 
 # Toolchain compiler name table.
-$cmake_toolchain_Clang_CC = "clang"
-$cmake_toolchain_Clang_CXX = "clang++"
-$cmake_toolchain_GNU_CC = "gcc"
-$cmake_toolchain_GNU_CXX = "g++"
-$cmake_toolchain_PGI_CC = "pgcc"
-$cmake_toolchain_PGI_CXX = "pgCC"
-$cmake_toolchain_PathScale_CC = "pathcc"
-$cmake_toolchain_PathScale_CXX = "pathCC"
-$cmake_toolchain_XL_CC = "xlc"
-$cmake_toolchain_XL_CXX = "xlC"
+$cmake_toolchain_MSVC_CC = "cl"
+$cmake_toolchain_MSVC_CXX = "cl"
 
 function cmake_toolchain_try {
     param (
@@ -1364,7 +1349,7 @@ function cmake_c_compiler_try_set {
     # Check if C compiler works
     $TMPFILE = cmake_tmp_file
     @"
-#ifdef __cplusplus
+#ifdef _MSVC_LANG
 # error "The CMAKE_C_COMPILER is set to a C++ compiler"
 #endif
 
@@ -1443,7 +1428,7 @@ function cmake_cxx_compiler_try_set {
 #include <memory>
 #include <unordered_map>
 
-#if __cplusplus < 201103L
+#if _MSVC_LANG < 201103L
 #error "Compiler is not in a mode aware of C++11."
 #endif
 
@@ -1451,7 +1436,7 @@ function cmake_cxx_compiler_try_set {
 #error "SunPro <= 5.13 mode not supported due to bug in move semantics."
 #endif
 
-#if __cplusplus > 201103L
+#if _MSVC_LANG > 201103L
 #include <iterator>
 int check_cxx14()
 {
@@ -1470,7 +1455,7 @@ int check_cxx14()
 }
 #endif
 
-#if (__cplusplus >= 201703L || defined(__INTEL_COMPILER) && defined(__cpp_deduction_guides))
+#if (_MSVC_LANG >= 201703L || defined(__INTEL_COMPILER) && defined(__cpp_deduction_guides))
 #include <optional>
 template <typename T,
           typename std::invoke_result<decltype(&T::get), T>::type = nullptr>
@@ -1508,7 +1493,8 @@ int main()
   return 0;
 }
 "@ | Set-Content "${TMPFILE}.cxx" -Encoding ascii
-    foreach ($std in @(17, 14, 11)) {
+    # TODO: Check if 11 could work here
+    foreach ($std in @(17, 14)) {
         $std_flags = cmake_extract_standard_flags "${cmake_toolchain}" "CXX" "${std}"
         $std_flags = $std_flags -split '\s+'
         $std_flags = , "" + $std_flags
@@ -1559,7 +1545,7 @@ foreach ($feature in ${cmake_cxx_features}) {
     Set-Variable -Name $varname -Value 0
 
     "Checking whether '${cmake_cxx_compiler} ${cmake_cxx_flags} ${cmake_ld_flags}' supports '${feature}'." | Add-Content cmake_bootstrap.log
-    $output = & cmake_try_run "${cmake_cxx_compiler}" @cmake_cxx_flags @cmake_ld_flags "${cmake_source_dir}\Source\Checks\cm_cxx_${feature}.cxx" 2>&1
+    $output = & cmake_try_run "${cmake_cxx_compiler}" "$cmake_cxx_flags $cmake_ld_flags" "${cmake_source_dir}\Source\Checks\cm_cxx_${feature}.cxx" 2>&1
     $exit = $LASTEXITCODE
     $output | Tee-Object -FilePath cmake_bootstrap.log -Append | Out-Null
     if ($exit -eq 0) {
@@ -1572,7 +1558,7 @@ foreach ($feature in ${cmake_cxx_features}) {
     $varname = "cmake_have_cxx_${feature}"
     $feature_value = (Get-Variable $varname).Value
     if ("${feature_value}" -eq "1") {
-        $new_feature = "-DCMake_HAVE_CXX_$($feature.ToUpper())=${feature_value}"
+        $new_feature = "/DCMake_HAVE_CXX_$($feature.ToUpper())=${feature_value}"
         $cmake_have_cxx_features += $new_feature
     }
 }
@@ -1607,14 +1593,14 @@ Set-Location "${cmake_bootstrap_dir}\${TMPFILE}"
 if ("${cmake_bootstrap_generator}" -eq "Ninja") {
     Write-Output @"
 rule cc
-  command = ${cmake_c_compiler} ${cmake_ld_flags} ${cmake_c_flags} -o $out $in
+  command = ${cmake_c_compiler} ${cmake_ld_flags} ${cmake_c_flags} "/Fe:`$out" $in
 build test: cc test.c
 "@ | Set-Content "build.ninja" -Encoding ascii
 }
 else {
     Write-Output @"
 test: test.c
-${tab}${cmake_c_compiler} ${cmake_ld_flags} ${cmake_c_flags} -o test test.c
+${tab}${cmake_c_compiler} ${cmake_ld_flags} ${cmake_c_flags} /Fe:test test.c
 "@ | Set-Content "Makefile" -Encoding ascii
 }
 
@@ -1659,8 +1645,6 @@ else {
     $mf_str = "Makefile"
 }
 
-Write-Host ${cmake_make_processor}
-
 if ($null -eq ${cmake_make_processor}) {
     cmake_error 8 "Cannot find appropriate ${mf_str} processor on this system.
 Please specify one using environment variable MAKE."
@@ -1687,7 +1671,7 @@ $KWSYS_CXX_HAS_UTIMENSAT = $false
 $KWSYS_CXX_HAS_UTIMES = $false
 
 # TODO: look if there is a better way to pipe output then do these "output, exit, output" blocks
-$output = & cmake_try_run "${cmake_cxx_compiler}" @cmake_cxx_flags@ @cmake_ld_flags -DTEST_KWSYS_CXX_HAS_SETENV "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" 2>&1
+$output = & cmake_try_run "${cmake_cxx_compiler}" "$cmake_cxx_flags $cmake_ld_flags /DTEST_KWSYS_CXX_HAS_SETENV" "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" 2>&1
 $exit = $LASTEXITCODE
 $output | Tee-Object -FilePath cmake_bootstrap.log -Append | Out-Null
 if ($exit -eq 0) {
@@ -1698,7 +1682,7 @@ else {
     Write-Output "${cmake_cxx_compiler} does not have setenv"
 }
 
-$output = & cmake_try_run "${cmake_cxx_compiler}" @cmake_cxx_flags @cmake_ld_flags -DTEST_KWSYS_CXX_HAS_UNSETENV "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" 2>&1
+$output = & cmake_try_run "${cmake_cxx_compiler}" "$cmake_cxx_flags $cmake_ld_flags /DTEST_KWSYS_CXX_HAS_UNSETENV" "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" 2>&1
 $exit = $LASTEXITCODE
 $output | Tee-Object -FilePath cmake_bootstrap.log -Append | Out-Null
 if ($exit -eq 0) {
@@ -1709,18 +1693,18 @@ else {
     Write-Output "${cmake_cxx_compiler} does not have unsetenv"
 }
 
-$output = & cmake_try_run "${cmake_cxx_compiler}" @cmake_cxx_flags @cmake_ld_flags -DTEST_KWSYS_CXX_HAS_ENVIRON_IN_STDLIB_H "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" 2>&1
+$output = & cmake_try_run "${cmake_cxx_compiler}" "$cmake_cxx_flags $cmake_ld_flags /DTEST_KWSYS_CXX_HAS_ENVIRON_IN_STDLIB_H" "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" 2>&1
 $exit = $LASTEXITCODE
 $output | Tee-Object -FilePath cmake_bootstrap.log -Append | Out-Null
 if ($exit -eq 0) {
-  $KWSYS_CXX_HAS_ENVIRON_IN_STDLIB_H = $true
-  Write-Output "${cmake_cxx_compiler} has environ in stdlib.h"
+    $KWSYS_CXX_HAS_ENVIRON_IN_STDLIB_H = $true
+    Write-Output "${cmake_cxx_compiler} has environ in stdlib.h"
 }
 else {
     Write-Output "${cmake_cxx_compiler} does not have environ in stdlib.h"
 }
 
-$output = & cmake_try_run "${cmake_cxx_compiler}" @cmake_cxx_flags @cmake_ld_flags -DTEST_KWSYS_CXX_HAS_EXT_STDIO_FILEBUF_H "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" 2>&1
+$output = & cmake_try_run "${cmake_cxx_compiler}" "$cmake_cxx_flags $cmake_ld_flags /DTEST_KWSYS_CXX_HAS_EXT_STDIO_FILEBUF_H" "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" 2>&1
 $exit = $LASTEXITCODE
 $output | Tee-Object -FilePath cmake_bootstrap.log -Append | Out-Null
 if ($exit -eq 0) {
@@ -1854,7 +1838,7 @@ foreach ($h in ${CMAKE_STD_CXX_HEADERS}) {
 
 $objs = @()
 foreach ($a in ${CMAKE_CXX_SOURCES} + ${CMAKE_C_SOURCES} + ${CMAKE_STD_CXX_SOURCES} + ${LexerParser_CXX_SOURCES} + ${LexerParser_C_SOURCES} + ${KWSYS_CXX_SOURCES} + ${KWSYS_C_SOURCES}) {
-    $objs += "${a}.o"
+    $objs += "${a}.obj"
 }
 
 if (-not $bootstrap_system_libuv) {
@@ -1876,58 +1860,29 @@ if (-not $bootstrap_system_jsoncpp) {
 }
 
 # WIN_PATH DONE
-$uv_c_flags = @("-DWIN32_LEAN_AND_MEAN", "-D_WIN32_WINNT=0x0600")
-$libs = @("-ladvapi32", "-ldbghelp", "-liphlpapi", "-lole32", "-loleaut32", "-lpsapi", "-lshell32", "-luser32", "-luserenv", "-luuid", "-lws2_32")
+$uv_c_flags = @("/DWIN32_LEAN_AND_MEAN", "/D_WIN32_WINNT=0x0600")
+$libs = @("/link advapi32.lib", "/link dbghelp.lib", "/link iphlpapi.lib", "/link ole32.lib", "/link oleaut32.lib", "/link psapi.lib", "/link shell32.lib", "/link user32.lib", "/link userenv.lib", "/link uuid.lib", "/link ws2_32.lib")
 if (-not $bootstrap_system_libuv) {
-    $uv_c_flags += "-I${cmake_source_dir}\Utilities\cmlibuv\include"
-    $uv_c_flags += "-I${cmake_source_dir}\Utilities\cmlibuv\src\win"
-    $uv_c_flags += "-I${cmake_source_dir}\Utilities\cmlibuv\src"
+    $uv_c_flags += "/I${cmake_source_dir}\Utilities\cmlibuv\include"
+    $uv_c_flags += "/I${cmake_source_dir}\Utilities\cmlibuv\src\win"
+    $uv_c_flags += "/I${cmake_source_dir}\Utilities\cmlibuv\src"
 }
 else {
-    if (Get-Command pkg-config -ErrorAction SilentlyContinue) {
-        $use_uv_flags = "$(pkg-config --cflags libuv)"
-        $use_uv_ldflags = "$(pkg-config --libs libuv)"
-        $cmake_c_flags += ${use_uv_flags}
-        $cmake_cxx_flags += ${use_uv_flags}
-    }
-    else {
-        $use_uv_ldflags = @("-luv")
-    }
-  
-    $libs += ${use_uv_ldflags}
+    $libs += @("/link uv.lib")
 }
 
-$librhash_c_flags = @("-DNO_IMPORT_EXPORT")
+$librhash_c_flags = @("/DNO_IMPORT_EXPORT")
 if ($bootstrap_system_librhash) {
-    if (Get-Command pkg-config -ErrorAction SilentlyContinue) {
-        $use_librhash_flags = "$(pkg-config --cflags librhash)"
-        $use_librhash_ldflags = "$(pkg-config --libs librhash)"
-        $cmake_c_flags += ${use_librhash_flags}
-        $cmake_cxx_flags += ${use_librhash_flags}
-    }
-    else {
-        $use_librhash_ldflags = @("-lrhash")
-    }
-
-    $libs += ${use_librhash_ldflags}
+    $libs += @("/link rhash.lib")
 }
 
 $jsoncpp_cxx_flags = @()
 if (-not $bootstrap_system_jsoncpp) {
     # WIN_PATH DONE
-    $jsoncpp_cxx_flags += "-I${cmake_source_dir}\Utilities\cmjsoncpp\include"
+    $jsoncpp_cxx_flags += "/I${cmake_source_dir}\Utilities\cmjsoncpp\include"
 }
 else {
-    if (Get-Command pkg-config -ErrorAction SilentlyContinue) {
-        $use_jsoncpp_flags = "$(pkg-config --cflags jsoncpp)"
-        $use_jsoncpp_ldflags = "$(pkg-config --libs jsoncpp)"
-        $cmake_cxx_flags += ${use_jsoncpp_flags}
-    }
-    else {
-        $use_jsoncpp_ldflags = @("-ljsoncpp")
-    }
-    
-    $libs += ${use_jsoncpp_ldflags}
+    $libs += @("/link jsoncpp.lib")
 }
 
 # REMOVED system flags, because only necessary for Linux
@@ -1954,45 +1909,44 @@ function write_source_rule {
 
     $asciiNoBom = New-Object System.Text.UTF8Encoding $false
     if ("${cmake_bootstrap_generator}" -eq "Ninja") {
-        "build ${obj} : ${ninja_rule} ${src} | ${dep}" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding asciiNoBOM
-        "  srcflags = ${src_flags}" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding asciiNoBOM
+        "build ${obj} : ${ninja_rule} ${src} | ${dep}" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
+        "  srcflags = ${src_flags}" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
     } else {
-        #[System.IO.File]::AppendAllText("${cmake_bootstrap_dir}\Makefile", "${obj} : ${src} ${dep}`n", $asciiNoBom)
         "${obj} : ${src} ${dep}" | Add-Content "${cmake_bootstrap_dir}\Makefile" -Encoding ascii
-        #[System.IO.File]::AppendAllText("${cmake_bootstrap_dir}\Makefile", "${tab}${compiler} ${flags} ${src_flags} -c ${src} -o ${obj}`n", $asciiNoBom)
-        "${tab}${compiler} ${flags} ${src_flags} -c ${src} -o ${obj}" | Add-Content "${cmake_bootstrap_dir}\Makefile" -Encoding ascii
+        "${tab}${compiler} ${flags} ${src_flags} /c ${src} /Fo:${obj}" | Add-Content "${cmake_bootstrap_dir}\Makefile" -Encoding ascii
     }
 }
 
-$cmake_c_flags_String = "-DKWSYS_STRING_C"
-$cmake_c_flags_EncodingC = "-DKWSYS_ENCODING_DEFAULT_CODEPAGE=CP_ACP"
+$cmake_c_flags_String = "/DKWSYS_STRING_C"
+$cmake_c_flags_EncodingC = "/DKWSYS_ENCODING_DEFAULT_CODEPAGE=CP_ACP"
 $cmake_cxx_flags_EncodingCXX = "${cmake_c_flags_EncodingC}"
 $cmake_cxx_flags_cmProcessOutput = "${cmake_c_flags_EncodingC}"
 $cmake_cxx_flags_SystemTools = @(
-  "-DKWSYS_CXX_HAS_SETENV=${KWSYS_CXX_HAS_SETENV}",
-  "-DKWSYS_CXX_HAS_UNSETENV=${KWSYS_CXX_HAS_UNSETENV}",
-  "-DKWSYS_CXX_HAS_ENVIRON_IN_STDLIB_H=${KWSYS_CXX_HAS_ENVIRON_IN_STDLIB_H}",
-  "-DKWSYS_CXX_HAS_UTIMENSAT=${KWSYS_CXX_HAS_UTIMENSAT}",
-  "-DKWSYS_CXX_HAS_UTIMES=${KWSYS_CXX_HAS_UTIMES}"
+  "/DKWSYS_CXX_HAS_SETENV=${KWSYS_CXX_HAS_SETENV}",
+  "/DKWSYS_CXX_HAS_UNSETENV=${KWSYS_CXX_HAS_UNSETENV}",
+  "/DKWSYS_CXX_HAS_ENVIRON_IN_STDLIB_H=${KWSYS_CXX_HAS_ENVIRON_IN_STDLIB_H}",
+  "/DKWSYS_CXX_HAS_UTIMENSAT=${KWSYS_CXX_HAS_UTIMENSAT}",
+  "/DKWSYS_CXX_HAS_UTIMES=${KWSYS_CXX_HAS_UTIMES}"
 )
 
 # WIN_PATH DONE
 $cmake_c_flags += @(
-    "-DCMAKE_BOOTSTRAP",
-    "-I${cmake_bootstrap_dir}", # DUBBLE I
-    "-I${cmake_source_dir}\Source",
-    "-I${cmake_source_dir}\Source\LexerParser",
-    "-I${cmake_source_dir}\Utilities"
+    "/DCMAKE_BOOTSTRAP",
+    "/I${cmake_bootstrap_dir}", # DUBBLE I
+    "/I${cmake_source_dir}\Source",
+    "/I${cmake_source_dir}\Source\LexerParser",
+    "/I${cmake_source_dir}\Utilities"
 )
 
 # WIN_PATH DONE
 $cmake_cxx_flags += ${cmake_have_cxx_features} + @(
-    "-DCMAKE_BOOTSTRAP",
-    "-I${cmake_bootstrap_dir}",
-    "-I${cmake_source_dir}\Source",
-    "-I${cmake_source_dir}\Source\LexerParser",
-    "-I${cmake_source_dir}\Utilities\std",
-    "-I${cmake_source_dir}\Utilities"
+    "/DCMAKE_BOOTSTRAP",
+    "/DWIN32_LEAN_AND_MEAN",
+    "/I${cmake_bootstrap_dir}",
+    "/I${cmake_source_dir}\Source",
+    "/I${cmake_source_dir}\Source\LexerParser",
+    "/I${cmake_source_dir}\Utilities\std",
+    "/I${cmake_source_dir}\Utilities"
 )
 
 if ("${cmake_bootstrap_generator}" -eq "Ninja") {
@@ -2003,17 +1957,17 @@ if ("${cmake_bootstrap_generator}" -eq "Ninja") {
     "cxxflags = ${cmake_cxx_flags}" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
     "ldflags = ${cmake_ld_flags}" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
     "rule cc" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
-    "  command = \$cc \$cflags \$srcflags -c \$in -o \$out" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
+    "  command = `$cc `$cflags `$srcflags /c `$in /Fe:`$out" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
     "rule cxx" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
-    "  command = \$cxx \$cxxflags \$srcflags -c \$in -o \$out" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
+    "  command = `$cxx `$cxxflags `$srcflags /c `$in /Fe:`$out" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
     "rule link" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
-    "  command = \$cxx \$ldflags \$cxxflags \$in \$libs -o \$out" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
+    "  command = `$cxx `$ldflags `$cxxflags `$in `$libs /Fe:`$out" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
     "build cmake: link ${objs}" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
     "  libs = ${libs}" | Add-Content "${cmake_bootstrap_dir}\build.ninja" -Encoding ascii
 }
 else {
     "cmake: ${objs}" | Set-Content "${cmake_bootstrap_dir}\Makefile" -Encoding ascii # TODO: CHECK Set-Content
-    "${tab}${cmake_cxx_compiler} ${cmake_ld_flags} ${cmake_cxx_flags} ${objs} ${libs} -o cmake" | Add-Content "${cmake_bootstrap_dir}\Makefile" -Encoding ascii
+    "${tab}${cmake_cxx_compiler} ${cmake_ld_flags} ${cmake_cxx_flags} ${objs} ${libs} /Fe:cmake" | Add-Content "${cmake_bootstrap_dir}\Makefile" -Encoding ascii
 }
 
 # WIN_PATH DONE
@@ -2022,14 +1976,14 @@ foreach ($a in ${CMAKE_CXX_SOURCES}) {
     $src = cmake_escape_artifact ${src_path}
     $varname = "cmake_cxx_flags_${a}"
     $src_flags = (Get-Variable $varname -ErrorAction SilentlyContinue).Value
-    write_source_rule "cxx" "${a}.o" "${src}" "${src_flags}"
+    write_source_rule "cxx" "${a}.obj" "${src}" "${src_flags}"
 }
 
 # WIN_PATH DONE
 foreach ($a in ${CMAKE_C_SOURCES}) {
     $src_path = "${cmake_source_dir}\Source\${a}.c"
     $src = cmake_escape_artifact ${src_path}
-    write_source_rule "c" "${a}.o" "${src}" ""
+    write_source_rule "c" "${a}.obj" "${src}" ""
 }
 
 # WIN_PATH DONE
@@ -2038,7 +1992,7 @@ foreach ($a in ${CMAKE_STD_CXX_SOURCES}) {
     $src = cmake_escape_artifact ${src_path}
     $varname = "cmake_cxx_flags_${a}"
     $src_flags = (Get-Variable $varname -ErrorAction SilentlyContinue).Value
-    write_source_rule "cxx" "${a}.o" "${src}" "${src_flags}"
+    write_source_rule "cxx" "${a}.obj" "${src}" "${src_flags}"
 }
 
 # WIN_PATH DONE
@@ -2047,14 +2001,14 @@ foreach ($a in ${LexerParser_CXX_SOURCES}) {
     $src = cmake_escape_artifact ${src_path}
     $varname = "cmake_cxx_flags_${a}"
     $src_flags = (Get-Variable $varname -ErrorAction SilentlyContinue).Value
-    write_source_rule "cxx" "${a}.o" "${src}" "${src_flags}"
+    write_source_rule "cxx" "${a}.obj" "${src}" "${src_flags}"
 }
 
 # WIN_PATH DONE
 foreach ($a in ${LexerParser_C_SOURCES}) {
     $src_path = "${cmake_source_dir}\Source\LexerParser\${a}.c"
     $src = cmake_escape_artifact ${src_path}
-    write_source_rule "c" "${a}.o" "${src}" ""
+    write_source_rule "c" "${a}.obj" "${src}" ""
 }
 
 # WIN_PATH DONE
@@ -2062,8 +2016,8 @@ foreach ($a in ${KWSYS_C_SOURCES}) {
     $src_path = "${cmake_source_dir}\Source\kwsys\${a}.c"
     $src = cmake_escape_artifact ${src_path}
     $varname = "cmake_c_flags_${a}"
-    $src_flags = (Get-Variable $varname -ErrorAction SilentlyContinue).Value + " -DKWSYS_NAMESPACE=cmsys"
-    write_source_rule "c" "${a}.o" "${src}" "${src_flags}"
+    $src_flags = (Get-Variable $varname -ErrorAction SilentlyContinue).Value + " /DKWSYS_NAMESPACE=cmsys"
+    write_source_rule "c" "${a}.obj" "${src}" "${src_flags}"
 }
 
 # WIN_PATH DONE
@@ -2071,8 +2025,8 @@ foreach ($a in ${KWSYS_CXX_SOURCES}) {
     $src_path = "${cmake_source_dir}\Source\kwsys\${a}.cxx"
     $src = cmake_escape_artifact ${src_path}
     $varname = "cmake_cxx_flags_${a}"
-    $src_flags = (Get-Variable $varname -ErrorAction SilentlyContinue).Value + " -DKWSYS_NAMESPACE=cmsys"
-    write_source_rule "cxx" "${a}.o" "${src}" "${src_flags}"
+    $src_flags = (Get-Variable $varname -ErrorAction SilentlyContinue).Value + " /DKWSYS_NAMESPACE=cmsys"
+    write_source_rule "cxx" "${a}.obj" "${src}" "${src_flags}"
 }
 
 # WIN_PATH DONE
@@ -2239,16 +2193,16 @@ $env:CXXFLAGS = $CXXFLAGS
 $env:LDFLAGS = $LDFLAGS
 
 # Run bootstrap CMake to configure real CMake
-$cmake_options = @("-DCMAKE_BOOTSTRAP=1")
+$cmake_options = @("/DCMAKE_BOOTSTRAP=1")
 if ($cmake_verbose) {
-    $cmake_options += "-DCMAKE_VERBOSE_MAKEFILE=1"
+    $cmake_options += "/DCMAKE_VERBOSE_MAKEFILE=1"
 }
 
 # Change Windows paths to unix like paths for CMake call
 $unix_cmake_bootstrap_dir = to_cmake_path $cmake_bootstrap_dir
 $unix_cmake_source_dir = to_cmake_path $cmake_source_dir
-Write-Host "${unix_cmake_bootstrap_dir}/cmake" "${unix_cmake_source_dir}" "-C" "${unix_cmake_bootstrap_dir}/InitialCacheFlags.cmake" "-G" "${cmake_bootstrap_generator}" @cmake_options @cmake_bootstrap_system_libs @args
-& "${unix_cmake_bootstrap_dir}/cmake" "${unix_cmake_source_dir}" "-C" "${unix_cmake_bootstrap_dir}/InitialCacheFlags.cmake" "-G" "${cmake_bootstrap_generator}" @cmake_options @cmake_bootstrap_system_libs @args
+Write-Host "${unix_cmake_bootstrap_dir}/cmake" "${unix_cmake_source_dir}" "/C" "${unix_cmake_bootstrap_dir}/InitialCacheFlags.cmake" "-G" "${cmake_bootstrap_generator}" @cmake_options @cmake_bootstrap_system_libs @args
+& "${unix_cmake_bootstrap_dir}/cmake" "${unix_cmake_source_dir}" "/C" "${unix_cmake_bootstrap_dir}/InitialCacheFlags.cmake" "-G" "${cmake_bootstrap_generator}" @cmake_options @cmake_bootstrap_system_libs @args
 $RES=$?
 if (-not ${RES}) {
     cmake_error 11 "Problem while running initial CMake"
