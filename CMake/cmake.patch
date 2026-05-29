@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Distributed under the OSI-approved BSD 3-Clause License. See LICENSE file for details.
 diff --git a/Source/cmake.cxx b/Source/cmake.cxx
 index 3a277f4e1b..8dc7743675 100644
 --- a/Source/cmake.cxx
