@@ -1,8 +1,15 @@
 diff --git a/Source/cmake.cxx b/Source/cmake.cxx
-index 3a277f4e1b..ada16409d4 100644
+index 3a277f4e1b..8dc7743675 100644
 --- a/Source/cmake.cxx
 +++ b/Source/cmake.cxx
-@@ -99,13 +99,13 @@
+@@ -93,19 +93,19 @@
+ #  include "cmVariableWatch.h"
+ #endif
+ 
+-#if defined(__MINGW32__) && defined(CMAKE_BOOTSTRAP)
++#if defined(_WIN32) && defined(CMAKE_BOOTSTRAP)
+ #  define CMAKE_BOOT_MINGW
+ #endif
  
  // include the generator
  #if defined(_WIN32) && !defined(__CYGWIN__)
@@ -30,3 +37,15 @@ index 3a277f4e1b..ada16409d4 100644
  #endif
  #if !defined(CMAKE_BOOTSTRAP)
  #  if (defined(__linux__) && !defined(__ANDROID__)) || defined(_WIN32)
+diff --git a/Source/kwsys/SystemTools.cxx b/Source/kwsys/SystemTools.cxx
+index b7e0960034..5a23d724a9 100644
+--- a/Source/kwsys/SystemTools.cxx
++++ b/Source/kwsys/SystemTools.cxx
+@@ -72,6 +72,7 @@
+ 
+ #ifdef _MSC_VER
+ #  define umask _umask
++typedef unsigned char byte;
+ #endif
+ 
+ // support for realpath call

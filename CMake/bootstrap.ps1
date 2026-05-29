@@ -168,9 +168,9 @@ param(
 
     [string]$CC,
     [string]$CXX,
-    [string]$CFLAGS,
-    [string]$CXXFLAGS,
-    [string]$LDFLAGS
+    [string[]]$CFLAGS,
+    [string[]]$CXXFLAGS,
+    [string[]]$LDFLAGS
 )
 
 # Set false booleans
@@ -556,6 +556,7 @@ $CMAKE_CXX_SOURCES = @(
     "cmDefinePropertyCommand",
     "cmDefinitions",
     "cmDiagnostics",
+    "cmDiagnosticContext",
     "cmDiscoverTestsCommand",
     "cmDocumentationFormatter",
     "cmELF",
@@ -1092,7 +1093,7 @@ function cmake_try_run {
     Write-Output "----------  file   -----------------------"
     Get-Content "${TESTFILE}"
     Write-Output "------------------------------------------"
-    & $COMPILER @compiler_flags $TESTFILE "/Fe:$TMPFILE"
+    & $COMPILER @compiler_flags $TESTFILE /Fe:"$TMPFILE"
     if (-not($?)) {
         Write-Output "Test failed to compile"
         return 1
@@ -1503,7 +1504,7 @@ int main()
             cmake_try_run $test_compiler "$cmake_cxx_flags $cmake_ld_flags $std_flag" "${TMPFILE}.cxx" 2>&1 | Tee-Object -FilePath cmake_bootstrap.log -Append
             if ($LASTEXITCODE -eq 0) {
                 $script:cmake_cxx_compiler = "${test_compiler}"
-                $script:cmake_cxx_flags = "${cmake_cxx_flags} ${std_flag}"
+                $script:cmake_cxx_flags += "${std_flag}"
                 Remove-Item -Force "${TMPFILE}.cxx" -ErrorAction SilentlyContinue
                 return 0
             }
@@ -1861,19 +1862,19 @@ if (-not $bootstrap_system_jsoncpp) {
 
 # WIN_PATH DONE
 $uv_c_flags = @("/DWIN32_LEAN_AND_MEAN", "/D_WIN32_WINNT=0x0600")
-$libs = @("/link advapi32.lib", "/link dbghelp.lib", "/link iphlpapi.lib", "/link ole32.lib", "/link oleaut32.lib", "/link psapi.lib", "/link shell32.lib", "/link user32.lib", "/link userenv.lib", "/link uuid.lib", "/link ws2_32.lib")
+$libs = @("advapi32.lib", "dbghelp.lib", "iphlpapi.lib", "ole32.lib", "oleaut32.lib", "psapi.lib", "shell32.lib", "user32.lib", "userenv.lib", "uuid.lib", "ws2_32.lib")
 if (-not $bootstrap_system_libuv) {
     $uv_c_flags += "/I${cmake_source_dir}\Utilities\cmlibuv\include"
     $uv_c_flags += "/I${cmake_source_dir}\Utilities\cmlibuv\src\win"
     $uv_c_flags += "/I${cmake_source_dir}\Utilities\cmlibuv\src"
 }
 else {
-    $libs += @("/link uv.lib")
+    $libs += @("uv.lib")
 }
 
 $librhash_c_flags = @("/DNO_IMPORT_EXPORT")
 if ($bootstrap_system_librhash) {
-    $libs += @("/link rhash.lib")
+    $libs += @("rhash.lib")
 }
 
 $jsoncpp_cxx_flags = @()
@@ -1882,7 +1883,7 @@ if (-not $bootstrap_system_jsoncpp) {
     $jsoncpp_cxx_flags += "/I${cmake_source_dir}\Utilities\cmjsoncpp\include"
 }
 else {
-    $libs += @("/link jsoncpp.lib")
+    $libs += @("jsoncpp.lib")
 }
 
 # REMOVED system flags, because only necessary for Linux
@@ -1967,7 +1968,7 @@ if ("${cmake_bootstrap_generator}" -eq "Ninja") {
 }
 else {
     "cmake: ${objs}" | Set-Content "${cmake_bootstrap_dir}\Makefile" -Encoding ascii # TODO: CHECK Set-Content
-    "${tab}${cmake_cxx_compiler} ${cmake_ld_flags} ${cmake_cxx_flags} ${objs} ${libs} /Fe:cmake" | Add-Content "${cmake_bootstrap_dir}\Makefile" -Encoding ascii
+    "${tab}${cmake_cxx_compiler} ${cmake_ld_flags} ${cmake_cxx_flags} ${objs} ${libs} /Fe:cmake.exe" | Add-Content "${cmake_bootstrap_dir}\Makefile" -Encoding ascii
 }
 
 # WIN_PATH DONE
@@ -2193,16 +2194,16 @@ $env:CXXFLAGS = $CXXFLAGS
 $env:LDFLAGS = $LDFLAGS
 
 # Run bootstrap CMake to configure real CMake
-$cmake_options = @("/DCMAKE_BOOTSTRAP=1")
+$cmake_options = @("-DCMAKE_BOOTSTRAP=1", "-DBUILD_TESTING=OFF") #TODO: figure out why DBUILD_TESTING=OFF is needed on windows
 if ($cmake_verbose) {
-    $cmake_options += "/DCMAKE_VERBOSE_MAKEFILE=1"
+    $cmake_options += "-DCMAKE_VERBOSE_MAKEFILE=1"
 }
 
 # Change Windows paths to unix like paths for CMake call
 $unix_cmake_bootstrap_dir = to_cmake_path $cmake_bootstrap_dir
 $unix_cmake_source_dir = to_cmake_path $cmake_source_dir
-Write-Host "${unix_cmake_bootstrap_dir}/cmake" "${unix_cmake_source_dir}" "/C" "${unix_cmake_bootstrap_dir}/InitialCacheFlags.cmake" "-G" "${cmake_bootstrap_generator}" @cmake_options @cmake_bootstrap_system_libs @args
-& "${unix_cmake_bootstrap_dir}/cmake" "${unix_cmake_source_dir}" "/C" "${unix_cmake_bootstrap_dir}/InitialCacheFlags.cmake" "-G" "${cmake_bootstrap_generator}" @cmake_options @cmake_bootstrap_system_libs @args
+Write-Host "${unix_cmake_bootstrap_dir}/cmake.exe" "${unix_cmake_source_dir}" "-C" "${unix_cmake_bootstrap_dir}/InitialCacheFlags.cmake" "-G" "${cmake_bootstrap_generator}" @cmake_options @cmake_bootstrap_system_libs @args
+& "${unix_cmake_bootstrap_dir}/cmake.exe" "${unix_cmake_source_dir}" "-C" "${unix_cmake_bootstrap_dir}/InitialCacheFlags.cmake" "-G" "${cmake_bootstrap_generator}" @cmake_options @cmake_bootstrap_system_libs @args
 $RES=$?
 if (-not ${RES}) {
     cmake_error 11 "Problem while running initial CMake"
