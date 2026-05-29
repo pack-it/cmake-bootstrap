@@ -930,8 +930,7 @@ function cmake_extract_standard_flags {
     $result += (Get-Content "$cmake_source_dir\Modules\Compiler\$id-$lang.cmake" -ErrorAction SilentlyContinue) |
     Select-String $pattern |
     ForEach-Object { $_.Matches[0].Groups[1].Value } |
-    ForEach-Object { $_ -replace ';', ' ' } |
-    ForEach-Object { $_ -replace '-', '/' } # TODO: Change this to only replace the first '-' not all 
+    ForEach-Object { $_ -replace ';', ' ' }
 
     $result
 }
@@ -1494,8 +1493,7 @@ int main()
   return 0;
 }
 "@ | Set-Content "${TMPFILE}.cxx" -Encoding ascii
-    # TODO: Check if 11 could work here
-    foreach ($std in @(17, 14)) {
+    foreach ($std in @(17, 14, 11)) {
         $std_flags = cmake_extract_standard_flags "${cmake_toolchain}" "CXX" "${std}"
         $std_flags = $std_flags -split '\s+'
         $std_flags = , "" + $std_flags
@@ -1943,6 +1941,8 @@ $cmake_c_flags += @(
 $cmake_cxx_flags += ${cmake_have_cxx_features} + @(
     "/DCMAKE_BOOTSTRAP",
     "/DWIN32_LEAN_AND_MEAN",
+    "/DHAVE_ENVIRON_NOT_REQUIRE_PROTOTYPE",
+    "/EHsc",
     "/I${cmake_bootstrap_dir}",
     "/I${cmake_source_dir}\Source",
     "/I${cmake_source_dir}\Source\LexerParser",
