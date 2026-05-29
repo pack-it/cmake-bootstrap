@@ -1209,6 +1209,7 @@ else {
 $default_cmake_toolchain = "MSVC"
 
 # Toolchain compiler names
+# These ARE USED with generated variable names with prefix "cmake_toolchain_"
 $cmake_toolchain_MSVC_CC = "cl"
 $cmake_toolchain_MSVC_CXX = "cl"
 
@@ -1458,10 +1459,8 @@ foreach ($feature in ${cmake_cxx_features}) {
     Set-Variable -Name $varname -Value 0
 
     "Checking whether '${cmake_cxx_compiler} ${cmake_cxx_flags} ${cmake_ld_flags}' supports '${feature}'." | Add-Content cmake_bootstrap.log
-    $output = & cmake_try_run "${cmake_cxx_compiler}" ($cmake_cxx_flags + $cmake_ld_flags) "${cmake_source_dir}\Source\Checks\cm_cxx_${feature}.cxx" 2>&1
-    $exit = $LASTEXITCODE
-    $output | Tee-Object -FilePath cmake_bootstrap.log -Append | Out-Null
-    if ($exit -eq 0) {
+    & cmake_try_run "${cmake_cxx_compiler}" ($cmake_cxx_flags + $cmake_ld_flags) "${cmake_source_dir}\Source\Checks\cm_cxx_${feature}.cxx" *>> cmake_bootstrap.log
+    if ($LASTEXITCODE -eq 0) {
         Set-Variable -Name $varname -Value 1
     }
 }
@@ -1527,10 +1526,8 @@ if ("${cmake_parallel_make}" -ne "") {
 }
 
 foreach ($a in ${cmake_make_processors}) {
-    $output = & cmake_try_make "${a}" @cmake_make_flags 2>&1
-    $exit = $LASTEXITCODE
-    $output | Tee-Object -FilePath ..\cmake_bootstrap.log -Append | Out-Null
-    if ($null -eq ${cmake_make_processor} -and $exit -eq 0) {
+    & cmake_try_make "${a}" @cmake_make_flags *>> cmake_bootstrap.log
+    if ($null -eq ${cmake_make_processor} -and $LASTEXITCODE -eq 0) {
         $cmake_make_processor = "${a}"
     }
 }
@@ -1540,10 +1537,8 @@ if ("${cmake_original_make_flags}" -ne "${cmake_make_flags}") {
     if ($null -eq ${cmake_make_processor}) {
         $cmake_make_flags = "${cmake_original_make_flags}"
         foreach ($a in ${cmake_make_processors}) {
-            $output = & cmake_try_make "${a}" @cmake_make_flags 2>&1
-            $exit = $LASTEXITCODE
-            $output | Tee-Object -FilePath ..\cmake_bootstrap.log -Append | Out-Null
-            if ($null -eq ${cmake_make_processor} -and $exit -eq 0) {
+            & cmake_try_make "${a}" @cmake_make_flags *>> cmake_bootstrap.log
+            if ($null -eq ${cmake_make_processor} -and $LASTEXITCODE -eq 0) {
                 $cmake_make_processor = "${a}"
             }
         }
@@ -1584,11 +1579,8 @@ $KWSYS_CXX_HAS_ENVIRON_IN_STDLIB_H = 0
 $KWSYS_CXX_HAS_UTIMENSAT = 0
 $KWSYS_CXX_HAS_UTIMES = 0
 
-# TODO: look if there is a better way to pipe output then do these "output, exit, output" blocks
-$output = & cmake_try_run "${cmake_cxx_compiler}" ($cmake_cxx_flags + $cmake_ld_flags + "/DTEST_KWSYS_CXX_HAS_SETENV") "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" 2>&1
-$exit = $LASTEXITCODE
-$output | Tee-Object -FilePath cmake_bootstrap.log -Append | Out-Null
-if ($exit -eq 0) {
+& cmake_try_run "${cmake_cxx_compiler}" ($cmake_cxx_flags + $cmake_ld_flags + "/DTEST_KWSYS_CXX_HAS_SETENV") "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" *>> cmake_bootstrap.log
+if ($LASTEXITCODE -eq 0) {
     $KWSYS_CXX_HAS_SETENV = 1
     Write-Output "${cmake_cxx_compiler} has setenv"
 }
@@ -1596,10 +1588,8 @@ else {
     Write-Output "${cmake_cxx_compiler} does not have setenv"
 }
 
-$output = & cmake_try_run "${cmake_cxx_compiler}" ($cmake_cxx_flags + $cmake_ld_flags + "/DTEST_KWSYS_CXX_HAS_UNSETENV") "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" 2>&1
-$exit = $LASTEXITCODE
-$output | Tee-Object -FilePath cmake_bootstrap.log -Append | Out-Null
-if ($exit -eq 0) {
+& cmake_try_run "${cmake_cxx_compiler}" ($cmake_cxx_flags + $cmake_ld_flags + "/DTEST_KWSYS_CXX_HAS_UNSETENV") "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" *>> cmake_bootstrap.log
+if ($LASTEXITCODE -eq 0) {
     $KWSYS_CXX_HAS_UNSETENV = 1
     Write-Output "${cmake_cxx_compiler} has unsetenv"
 }
@@ -1607,10 +1597,8 @@ else {
     Write-Output "${cmake_cxx_compiler} does not have unsetenv"
 }
 
-$output = & cmake_try_run "${cmake_cxx_compiler}" ($cmake_cxx_flags + $cmake_ld_flags + "/DTEST_KWSYS_CXX_HAS_ENVIRON_IN_STDLIB_H") "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" 2>&1
-$exit = $LASTEXITCODE
-$output | Tee-Object -FilePath cmake_bootstrap.log -Append | Out-Null
-if ($exit -eq 0) {
+& cmake_try_run "${cmake_cxx_compiler}" ($cmake_cxx_flags + $cmake_ld_flags + "/DTEST_KWSYS_CXX_HAS_ENVIRON_IN_STDLIB_H") "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" *>> cmake_bootstrap.log
+if ($LASTEXITCODE -eq 0) {
     $KWSYS_CXX_HAS_ENVIRON_IN_STDLIB_H = 1
     Write-Output "${cmake_cxx_compiler} has environ in stdlib.h"
 }
@@ -1618,10 +1606,8 @@ else {
     Write-Output "${cmake_cxx_compiler} does not have environ in stdlib.h"
 }
 
-$output = & cmake_try_run "${cmake_cxx_compiler}" ($cmake_cxx_flags + $cmake_ld_flags + "/DTEST_KWSYS_CXX_HAS_EXT_STDIO_FILEBUF_H") "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" 2>&1
-$exit = $LASTEXITCODE
-$output | Tee-Object -FilePath cmake_bootstrap.log -Append | Out-Null
-if ($exit -eq 0) {
+& cmake_try_run "${cmake_cxx_compiler}" ($cmake_cxx_flags + $cmake_ld_flags + "/DTEST_KWSYS_CXX_HAS_EXT_STDIO_FILEBUF_H") "${cmake_source_dir}\Source\kwsys\kwsysPlatformTestsCXX.cxx" *>> cmake_bootstrap.log
+if ($LASTEXITCODE -eq 0) {
     $KWSYS_CXX_HAS_EXT_STDIO_FILEBUF_H = 1
     Write-Output "${cmake_cxx_compiler} has <ext/stdio_filebuf.h>"
 }
@@ -1827,6 +1813,7 @@ function write_source_rule {
     }
 }
 
+# These ARE USED with generated variable names with prefix "cmake_c_flags_" or "cmake_cxx_flags_"
 $cmake_c_flags_String = "/DKWSYS_STRING_C"
 $cmake_c_flags_EncodingC = "/DKWSYS_ENCODING_DEFAULT_CODEPAGE=CP_ACP"
 $cmake_cxx_flags_EncodingCXX = "${cmake_c_flags_EncodingC}"
