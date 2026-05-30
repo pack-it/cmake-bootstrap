@@ -493,15 +493,12 @@ $CMAKE_CXX_SOURCES = @(
     "cmCMakeLanguageCommand",
     "cmCMakeMinimumRequired",
     "cmList",
-    "cmCMakeDiagnosticCommand",
     "cmCMakePath",
     "cmCMakePathCommand",
     "cmCMakePolicyCommand",
     "cmCMakeString",
     "cmCPackPropertiesGenerator",
-    "cmCacheDocumentationTable"
     "cmCacheManager",
-    "cmCachePatternTable",
     "cmCommands",
     "cmCommonTargetGenerator",
     "cmComputeComponentGraph",
@@ -521,14 +518,10 @@ $CMAKE_CXX_SOURCES = @(
     "cmCxxModuleUsageEffects",
     "cmDefinePropertyCommand",
     "cmDefinitions",
-    "cmDiagnostics",
-    "cmDiagnosticContext",
-    "cmDiscoverTestsCommand",
     "cmDocumentationFormatter",
     "cmELF",
     "cmEnableLanguageCommand",
     "cmEnableTestingCommand",
-    "cmEnvironment",
     "cmEvaluatedTargetProperty",
     "cmExecProgramCommand",
     "cmExecuteProcessCommand",
@@ -549,7 +542,6 @@ $CMAKE_CXX_SOURCES = @(
     "cmFileCopier",
     "cmFileInstaller",
     "cmFileSet",
-    "cmFileSetMetadata",
     "cmFileTime",
     "cmFileTimeCache",
     "cmFileTimes",
@@ -575,17 +567,15 @@ $CMAKE_CXX_SOURCES = @(
     "cmGeneratorExpressionLexer",
     "cmGeneratorExpressionNode",
     "cmGeneratorExpressionParser",
-    "cmGeneratorFileSet",
-    "cmGeneratorFileSets",
     "cmGeneratorTarget",
     "cmGeneratorTarget_CompatibleInterface",
-    "cmGeneratorTarget_HeaderSetVerification",
     "cmGeneratorTarget_IncludeDirectories",
     "cmGeneratorTarget_Link",
     "cmGeneratorTarget_LinkDirectories",
     "cmGeneratorTarget_Options",
     "cmGeneratorTarget_Sources",
     "cmGeneratorTarget_TransitiveProperty",
+    "cmGeneratorTarget_TargetPropertyEntry",
     "cmGetCMakePropertyCommand",
     "cmGetDirectoryPropertyCommand",
     "cmGetFilenameComponentCommand",
@@ -616,7 +606,6 @@ $CMAKE_CXX_SOURCES = @(
     "cmInstallGenerator",
     "cmInstallGetRuntimeDependenciesGenerator",
     "cmInstallImportedRuntimeArtifactsGenerator",
-    "cmInstallDirs",
     "cmInstallRuntimeDependencySet",
     "cmInstallRuntimeDependencySetGenerator",
     "cmInstallScriptGenerator",
@@ -705,7 +694,6 @@ $CMAKE_CXX_SOURCES = @(
     "cmTargetPrecompileHeadersCommand",
     "cmTargetPropCommandBase",
     "cmTargetPropertyComputer",
-    "cmTargetPropertyEntry",
     "cmTargetSourcesCommand",
     "cmTargetTraceDependencies",
     "cmTest",
@@ -1757,7 +1745,7 @@ if (-not $bootstrap_system_jsoncpp) {
 }
 
 $uv_c_flags = @("/DWIN32_LEAN_AND_MEAN", "/D_WIN32_WINNT=0x0600")
-$libs = @("advapi32.lib", "dbghelp.lib", "iphlpapi.lib", "ole32.lib", "oleaut32.lib", "psapi.lib", "shell32.lib", "user32.lib", "userenv.lib", "uuid.lib", "ws2_32.lib")
+$libs = @("ws2_32.lib", "psapi.lib", "iphlpapi.lib", "shell32.lib", "userenv.lib", "ole32.lib", "oleaut32.lib", "uuid.lib", "advapi32.lib", "user32.lib")
 if (-not $bootstrap_system_libuv) {
     $uv_c_flags += "/I${cmake_source_dir}\Utilities\cmlibuv\include"
     $uv_c_flags += "/I${cmake_source_dir}\Utilities\cmlibuv\src\win"

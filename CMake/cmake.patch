@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Distributed under the OSI-approved BSD 3-Clause License. See LICENSE file for details.
 diff --git a/Source/cmake.cxx b/Source/cmake.cxx
-index 3a277f4e1b..8dc7743675 100644
+index 3b311e0366..c1db5dcb50 100644
 --- a/Source/cmake.cxx
 +++ b/Source/cmake.cxx
-@@ -93,19 +93,19 @@
+@@ -94,19 +94,18 @@
  #  include "cmVariableWatch.h"
  #endif
  
@@ -15,10 +15,10 @@ index 3a277f4e1b..8dc7743675 100644
  
  // include the generator
  #if defined(_WIN32) && !defined(__CYGWIN__)
-+#  include "cmGlobalNMakeMakefileGenerator.h"
++#    include "cmGlobalNMakeMakefileGenerator.h"
  #  if !defined(CMAKE_BOOT_MINGW)
  #    include <cmext/memory>
- 
+-
  #    include "cmGlobalBorlandMakefileGenerator.h"
  #    include "cmGlobalFastbuildGenerator.h"
  #    include "cmGlobalJOMMakefileGenerator.h"
@@ -26,7 +26,7 @@ index 3a277f4e1b..8dc7743675 100644
  #    include "cmGlobalVisualStudio14Generator.h"
  #    include "cmGlobalVisualStudioVersionedGenerator.h"
  #    include "cmVSSetupHelper.h"
-@@ -3390,11 +3390,11 @@ void cmake::AddDefaultGenerators()
+@@ -3319,11 +3318,11 @@ void cmake::AddDefaultGenerators()
      cmGlobalVisualStudioVersionedGenerator::NewFactory15());
    this->Generators.push_back(cmGlobalVisualStudio14Generator::NewFactory());
    this->Generators.push_back(cmGlobalBorlandMakefileGenerator::NewFactory());
@@ -40,7 +40,7 @@ index 3a277f4e1b..8dc7743675 100644
  #if !defined(CMAKE_BOOTSTRAP)
  #  if (defined(__linux__) && !defined(__ANDROID__)) || defined(_WIN32)
 diff --git a/Source/kwsys/SystemTools.cxx b/Source/kwsys/SystemTools.cxx
-index b7e0960034..5a23d724a9 100644
+index 7e23c16a95..5a666cd1ae 100644
 --- a/Source/kwsys/SystemTools.cxx
 +++ b/Source/kwsys/SystemTools.cxx
 @@ -72,6 +72,7 @@
