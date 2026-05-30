@@ -1,4 +1,4 @@
 /CMake/*
-!/CMake/win_bootstrap.sh
 !/CMake/bootstrap.ps1
 !/CMake/cmake.patch
+/release/
