@@ -36,9 +36,10 @@ echo \
 # Distributed under the OSI-approved BSD 3-Clause License. See LICENSE file for details." \
 > "$RELEASE_DIR/bootstrap.patch"
 
-git diff --no-index /dev/null CMake/bootstrap.ps1 >> "$RELEASE_DIR/bootstrap.patch"
+cd CMake
+git diff --no-index /dev/null bootstrap.ps1 >> "../$RELEASE_DIR/bootstrap.patch"
 
 # Create cmake.patch file
-cp CMake/cmake.patch "$RELEASE_DIR/cmake.patch"
+cp cmake.patch "../$RELEASE_DIR/cmake.patch"
 
 echo "Prepared CMake Bootstrap for Windows release"
